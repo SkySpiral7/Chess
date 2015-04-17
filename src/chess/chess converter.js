@@ -22,7 +22,7 @@ function indexToCoord(fileIndex, rankIndex)
 {
     var coord;
     coord = String.fromCharCode(fileIndex + ('A'.charCodeAt(0)));  //adjust from 0
-    coord += (rankIndex + 1);
+    coord += (rankIndex + 1);  //adjust from 0
     return coord;
 }
 
@@ -74,54 +74,73 @@ function Board()
 
 function parseMinimumCoordinateNotationGame(text)
 {
+    // /^[A-H][1-8][A-H][1-8][QBNR]?$/i
+    return parseMinimumCoordinateNotationMove(new Board(), text);
 }
 
-function parseMinimumCoordinateNotationMove(text)
+function parseMinimumCoordinateNotationMove(board, text)
 {
-    //eg: e1e2
-    var board = new Board();
+    //eg: a7a8q
     board.move(text.substr(0, 2), text.substr(2, 2));
     if(text.length === 5) board.setPiece(text.substr(2, 2), text[4]);
     return JSON.stringify(board.getBoardArray());
-    // /^[A-H][1-8][A-H][1-8][QBNR]?$/i
 }
 
 function parseFriendlyCoordinateNotationGame(text)
 {
+    // /^(?:[KQ]C|P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?)\+?#?$/i
+    return parseFriendlyCoordinateNotationMove(new Board(), text, true);
 }
 
-function parseFriendlyCoordinateNotationMove(text)
+function parseFriendlyCoordinateNotationMove(board, text, isWhitesTurn)
 {
-//Ra1-a8xQ, Pa7-B8xR=q or Pa7-A8=N, Pa5-b6en, KC, QC, Ra1-a8+#
-// /^(?:[KQ]C|P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?)\+?#?$/i
+    //eg: Ra1-a8xQ, Pa7-B8xR=q or Pa7-A8=N, Pa5-b6en, KC, QC, Ra1-a8+#
+    text = text.toLowerCase();
+   if (isWhitesTurn)
+   {
+       //TODO: castling is not yet implemented by Board
+       if(text === 'kc') return parseMinimumCoordinateNotationMove(board, 'e1g1');
+       if(text === 'qc') return parseMinimumCoordinateNotationMove(board, 'e1c1');
+   }
+    //if black's turn
+    if(text === 'kc') return parseMinimumCoordinateNotationMove(board, 'e8g8');
+    if(text === 'qc') return parseMinimumCoordinateNotationMove(board, 'e8c8');
+
+    text = text.substring(1);  //remove piece symbol
+    text = text.replace(/x./, '');  //remove capture information
+    text = text.replace('en', '');  //ditto
+    text = text.replace(/[+#=-]/, '');  //remove check/end game indicators and human friendly padding
+    return parseMinimumCoordinateNotationMove(board, text);
 }
 
 function parseShortenedFenGame(text)
 {
+   // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
+   return parseShortenedFenRow(new Board(), text);
 }
 
 /**This only the piece locations and the information that follows.*/
-function parseShortenedFenRow(text)
+function parseShortenedFenRow(board, text)
 {
-   //rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
+   //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
+   return parseFenBoard(board, text);
 }
 
 /**This only parses the piece locations.*/
-function parseFenBoard(text)
+function parseFenBoard(board, text)
 {
-   //rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
-    var board = new Board();
+   //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
     var rankArray = text.split('/');
    for (var rankIndex = 0; rankIndex < rankArray.length; rankIndex++)
    {
        var fileString = rankArray[rankIndex];
-       fileString = fileString.replace('8', '11111111');
-       fileString = fileString.replace('7', '1111111');
-       fileString = fileString.replace('6', '111111');
-       fileString = fileString.replace('5', '11111');
-       fileString = fileString.replace('4', '1111');
-       fileString = fileString.replace('3', '111');
        fileString = fileString.replace('2', '11');
+       fileString = fileString.replace('3', '111');
+       fileString = fileString.replace('4', '1111');
+       fileString = fileString.replace('5', '11111');
+       fileString = fileString.replace('6', '111111');
+       fileString = fileString.replace('7', '1111111');
+       fileString = fileString.replace('8', '11111111');
        //although not very clean I thought it was better than: if(/[2-8]/) loop: board.setPieceIndex(fileIndex, rankIndex, '1');
       for (var fileIndex = 0; fileIndex < fileString.length; fileIndex++)
       {
@@ -129,5 +148,4 @@ function parseFenBoard(text)
       }
    }
     return JSON.stringify(board.getBoardArray());
-   // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
 }
