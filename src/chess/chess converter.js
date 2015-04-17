@@ -8,6 +8,24 @@ very plain txt: http://www.tim-mann.org/Standard
 wikip: http://en.wikipedia.org/wiki/Portable_Game_Notation
 */
 
+function coordToIndex(coord)
+{
+    var indexies = [0, 0];
+    coord = coord.toUpperCase();
+    indexies[0] = coord.charCodeAt(0);
+    indexies[0] -= 'A'.charCodeAt(0);  //adjust to 0
+    indexies[1] = Number.parseInt(coord[1]);
+    indexies[1]--;  //adjust to 0
+    return indexies;
+}
+function indexToCoord(fileIndex, rankIndex)
+{
+    var coord;
+    coord = String.fromCharCode(fileIndex + ('A'.charCodeAt(0)));  //adjust from 0
+    coord += (rankIndex + 1);
+    return coord;
+}
+
 function Board()
 {
     var boardArray =
@@ -22,6 +40,12 @@ function Board()
       ['R', 'P', '1', '1', '1', '1', 'p', 'r']   //H8 is [7][7]
    ];
     this.getBoardArray = function(){return boardArray;};
+   this.copy = function()
+   {
+       var result = new Board();
+       result.boardArray = boardArray.slice();  //copy array
+       return result;
+   };
    this.move = function(source, destination)
    {
        var result = this.getPiece(source);
@@ -30,27 +54,29 @@ function Board()
    };
    this.setPiece = function(coord, symbol)
    {
-       var indexies = this.coordToIndex(coord);
-       boardArray[indexies[0]][indexies[1]] = symbol;
+       var indexies = coordToIndex(coord);
+       this.setPieceIndex(indexies[0], indexies[1], symbol);
+   };
+   this.setPieceIndex = function(fileIndex, rankIndex, symbol)
+   {
+       boardArray[fileIndex][rankIndex] = symbol;
    };
    this.getPiece = function(coord)
    {
-       var indexies = this.coordToIndex(coord);
-       return boardArray[indexies[0]][indexies[1]];
+       var indexies = coordToIndex(coord);
+       return this.getPieceIndex(indexies[0], indexies[1]);
    };
-   this.coordToIndex = function(coord)
+   this.getPieceIndex = function(fileIndex, rankIndex)
    {
-       var indexies = [0, 0];
-       coord = coord.toUpperCase();
-       indexies[0] = coord.charCodeAt(0);
-       indexies[0] -= 'A'.charCodeAt(0);  //adjust to 0
-       indexies[1] = Number.parseInt(coord[1]);
-       indexies[1]--;  //adjust to 0
-       return indexies;
+       return boardArray[fileIndex][rankIndex];
    };
 }
 
-function parseMinimumCoordinateNotation(text)
+function parseMinimumCoordinateNotationGame(text)
+{
+}
+
+function parseMinimumCoordinateNotationMove(text)
 {
     //eg: e1e2
     var board = new Board();
@@ -60,14 +86,48 @@ function parseMinimumCoordinateNotation(text)
     // /^[A-H][1-8][A-H][1-8][QBNR]?$/i
 }
 
-function parseFriendlyCoordinateNotation(text)
+function parseFriendlyCoordinateNotationGame(text)
+{
+}
+
+function parseFriendlyCoordinateNotationMove(text)
 {
 //Ra1-a8xQ, Pa7-B8xR=q or Pa7-A8=N, Pa5-b6en, KC, QC, Ra1-a8+#
 // /^(?:[KQ]C|P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?)\+?#?$/i
 }
 
-function parseShortenedFen(text)
+function parseShortenedFenGame(text)
+{
+}
+
+/**This only the piece locations and the information that follows.*/
+function parseShortenedFenRow(text)
+{
+   //rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
+}
+
+/**This only parses the piece locations.*/
+function parseFenBoard(text)
 {
    //rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
+    var board = new Board();
+    var rankArray = text.split('/');
+   for (var rankIndex = 0; rankIndex < rankArray.length; rankIndex++)
+   {
+       var fileString = rankArray[rankIndex];
+       fileString = fileString.replace('8', '11111111');
+       fileString = fileString.replace('7', '1111111');
+       fileString = fileString.replace('6', '111111');
+       fileString = fileString.replace('5', '11111');
+       fileString = fileString.replace('4', '1111');
+       fileString = fileString.replace('3', '111');
+       fileString = fileString.replace('2', '11');
+       //although not very clean I thought it was better than: if(/[2-8]/) loop: board.setPieceIndex(fileIndex, rankIndex, '1');
+      for (var fileIndex = 0; fileIndex < fileString.length; fileIndex++)
+      {
+          board.setPieceIndex(fileIndex, rankIndex, fileString[fileIndex]);
+      }
+   }
+    return JSON.stringify(board.getBoardArray());
    // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
 }
