@@ -29,8 +29,10 @@ function indexToCoord(fileIndex, rankIndex)
 function Game()
 {
     var boardArray = [new Board(true)];  //game starts with only initial starting positions
-    //var isWhitesTurn = ((boardArray.length&1)===1);  //if odd
-    //var fullMoveCount = Math.floor((boardArray.length-1)/2);
+    //var isWhitesTurn = ((boardArray.length & 1) === 1);  //if odd
+    //var fullMoveCount = Math.floor((boardArray.length - 1) / 2);
+    //all state info is stored in board so that it can change each move
+    this.getBoardArray = function(){return boardArray;};
    this.getBoard = function(index)
    {
        if(index === undefined) index = boardArray.length - 1;  //last index
@@ -66,21 +68,23 @@ function Board(passedTurnIndicator)
     /**Not that if true then white will be calling this.move*/
     var isWhitesTurn = passedTurnIndicator;
 
+    this.getState = function(){return {isWhitesTurn: isWhitesTurn, white: white, black: black};};
     this.getBoardSquares = function(){return boardSquares;};
    this.copy = function()
    {
-       var result = new Board(isWhitesTurn);
-       result.setAll({boardSquares: boardSquares, white: white, black: black});  //pass in each private var
+       var result = new Board(isWhitesTurn);  //passing in isWhitesTurn is in this case redundant
+       result.setAll(boardSquares, this.getState());  //indirectly pass in each private var
        return result;
    };
-   this.setAll = function(allValues)
+   this.setAll = function(newBoardSquares, newState)
    {
-      for (var fileIndex = 0; fileIndex < allValues.boardSquares.length; fileIndex++)
+      for (var fileIndex = 0; fileIndex < newBoardSquares.length; fileIndex++)
       {
-          boardSquares[fileIndex] = allValues.boardSquares[fileIndex].slice();  //shallow array copy
+          boardSquares[fileIndex] = newBoardSquares[fileIndex].slice();  //shallow array copy
       }
-       white = {canKingsCastle: allValues.white.canKingsCastle, canQueensCastle: allValues.white.canQueensCastle};
-       black = {canKingsCastle: allValues.black.canKingsCastle, canQueensCastle: allValues.black.canQueensCastle};
+       isWhitesTurn = newState.isWhitesTurn;
+       white = {canKingsCastle: newState.white.canKingsCastle, canQueensCastle: newState.white.canQueensCastle};
+       black = {canKingsCastle: newState.black.canKingsCastle, canQueensCastle: newState.black.canQueensCastle};
    };
     this.isWhitesTurn = function(){return isWhitesTurn;};
     this.switchTurns = function(){isWhitesTurn = !isWhitesTurn;};
@@ -182,6 +186,7 @@ function parseMinimumCoordinateNotationGame(text)
     // /^[A-H][1-8][A-H][1-8][QBNR]?$/i
     var game = new Game();
     game.addBoard(parseMinimumCoordinateNotationMove(game.getBoard(), text));
+    //TODO: method stubs
     return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
@@ -207,12 +212,14 @@ function parseFriendlyCoordinateNotationGame(text)
     // /^(?:[KQ]C|P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?)\+?#?$/i
     var game = new Game();
     game.addBoard(parseFriendlyCoordinateNotationMove(game.getBoard(), text));
+    //method stub
     return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
 function parseFriendlyCoordinateNotationMove(board, text)
 {
     //eg: Ra1-a8xQ, Pa7-B8xR=q or Pa7-A8=N, Pa5-b6en, KC, QC, Ra1-a8+#
+    //this function doesn't copy board because it always delegates the movement to parseMinimumCoordinateNotationMove
     text = text.toLowerCase();
    if (board.isWhitesTurn())
    {
@@ -237,13 +244,15 @@ function parseShortenedFenGame(text)
    // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
     var game = new Game();
     game.addBoard(parseShortenedFenRow(game.getBoard(), text));
+    //method stub
     return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
-/**This only the piece locations and the information that follows.*/
+/**This parses the piece locations and the information that follows.*/
 function parseShortenedFenRow(board, text)
 {
    //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
+    //method stub
    return parseFenBoard(board, text);
 }
 
@@ -273,6 +282,32 @@ function parseFenBoard(board, text)
    }
     board.switchTurns();
     return board;
+}
+
+/**The string returned has piece locations and the information that follows.*/
+function writeFenRow(board, fullMoveCount)
+{
+    var result = writeFenBoard(board) + ' ';
+
+    if(board.isWhitesTurn()) result += 'w ';
+    else result += 'b ';
+
+    var state = board.getState();
+    var castleAbilityString = '';
+    if(state.white.canKingsCastle) castleAbilityString += 'K';
+    if(state.white.canQueensCastle) castleAbilityString += 'Q';
+    if(state.black.canKingsCastle) castleAbilityString += 'k';
+    if(state.black.canQueensCastle) castleAbilityString += 'q';
+    if(castleAbilityString === '') castleAbilityString = '-';
+    result += castleAbilityString + ' ';
+
+    //TODO: board doesn't yet implement state.enPassantSquare
+    result += state.enPassantSquare + ' ';
+
+    //TODO: board doesn't yet implement state.halfMoveCount
+    result += '0 ' + fullMoveCount;
+
+    return result;
 }
 
 /**The string returned is only the piece locations.*/
