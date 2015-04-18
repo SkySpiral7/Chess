@@ -26,9 +26,28 @@ function indexToCoord(fileIndex, rankIndex)
     return coord;
 }
 
+function Game()
+{
+    var boardArray = [new Board()];  //game starts with only initial starting positions
+    //var isWhitesTurn = ((boardArray.length&1)===1);  //if odd
+    //var fullMoveCount = Math.floor((boardArray.length-1)/2);
+   this.getBoard = function(index)
+   {
+       if(index === undefined) index = boardArray.length - 1;  //last index
+       return boardArray[index];
+   };
+   this.move = function(source, destination)
+   {
+       //copy and change the last (current) board
+       var result = this.getBoard().copy();
+       result.move(source, destination);
+       boardArray.push(result);
+   };
+}
+
 function Board()
 {
-    var boardArray =
+    var boardSquares =
    [  //this rotation makes coordinate translation easier but doesn't match FEN
       ['R', 'P', '1', '1', '1', '1', 'p', 'r'],  //A1 is [0][0]
       ['N', 'P', '1', '1', '1', '1', 'p', 'n'],  //B
@@ -39,11 +58,17 @@ function Board()
       ['N', 'P', '1', '1', '1', '1', 'p', 'n'],  //G
       ['R', 'P', '1', '1', '1', '1', 'p', 'r']   //H8 is [7][7]
    ];
-    this.getBoardArray = function(){return boardArray;};
+    //programmer readable variables to track board state
+    var white = {canKingsCastle: true, canQueensCastle: true};
+    var black = {canKingsCastle: true, canQueensCastle: true};
+
+    this.getBoardSquares = function(){return boardSquares;};
    this.copy = function()
    {
        var result = new Board();
-       result.boardArray = boardArray.slice();  //copy array
+       result.boardSquares = boardSquares.slice();  //copy array
+       result.white = {canKingsCastle: white.canKingsCastle, canQueensCastle: white.canQueensCastle};
+       result.black = {canKingsCastle: black.canKingsCastle, canQueensCastle: black.canQueensCastle};
        return result;
    };
    this.move = function(source, destination)
@@ -59,7 +84,7 @@ function Board()
    };
    this.setPieceIndex = function(fileIndex, rankIndex, symbol)
    {
-       boardArray[fileIndex][rankIndex] = symbol;
+       boardSquares[fileIndex][rankIndex] = symbol;
    };
    this.getPiece = function(coord)
    {
@@ -68,7 +93,7 @@ function Board()
    };
    this.getPieceIndex = function(fileIndex, rankIndex)
    {
-       return boardArray[fileIndex][rankIndex];
+       return boardSquares[fileIndex][rankIndex];
    };
 }
 
@@ -83,7 +108,7 @@ function parseMinimumCoordinateNotationMove(board, text)
     //eg: a7a8q
     board.move(text.substr(0, 2), text.substr(2, 2));
     if(text.length === 5) board.setPiece(text.substr(2, 2), text[4]);
-    return JSON.stringify(board.getBoardArray());
+    return JSON.stringify(board.getBoardSquares());
 }
 
 function parseFriendlyCoordinateNotationGame(text)
@@ -109,7 +134,7 @@ function parseFriendlyCoordinateNotationMove(board, text, isWhitesTurn)
     text = text.substring(1);  //remove piece symbol
     text = text.replace(/x./, '');  //remove capture information
     text = text.replace('en', '');  //ditto
-    text = text.replace(/[+#=-]/, '');  //remove check/end game indicators and human friendly padding
+    text = text.replace(/[+#=-]/g, '');  //remove check/end game indicators and human friendly padding
     return parseMinimumCoordinateNotationMove(board, text);
 }
 
@@ -130,22 +155,54 @@ function parseShortenedFenRow(board, text)
 function parseFenBoard(board, text)
 {
    //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
+    //this order is logical and most efficient due to slowest string growth rate
+    text = text.replace(/2/g, '11');
+    text = text.replace(/3/g, '111');
+    text = text.replace(/4/g, '1111');
+    text = text.replace(/5/g, '11111');
+    text = text.replace(/6/g, '111111');
+    text = text.replace(/7/g, '1111111');
+    text = text.replace(/8/g, '11111111');
+    //although not very clean this is better than string manipulation
+    //I also thought it was better than doing inside the loop: if(/[2-8]/) loop: board.setPieceIndex(fileIndex, rankIndex, '1');
     var rankArray = text.split('/');
+    rankArray.reverse();  //FEN starts with rank 8 instead of 1
    for (var rankIndex = 0; rankIndex < rankArray.length; rankIndex++)
    {
-       var fileString = rankArray[rankIndex];
-       fileString = fileString.replace('2', '11');
-       fileString = fileString.replace('3', '111');
-       fileString = fileString.replace('4', '1111');
-       fileString = fileString.replace('5', '11111');
-       fileString = fileString.replace('6', '111111');
-       fileString = fileString.replace('7', '1111111');
-       fileString = fileString.replace('8', '11111111');
-       //although not very clean I thought it was better than: if(/[2-8]/) loop: board.setPieceIndex(fileIndex, rankIndex, '1');
-      for (var fileIndex = 0; fileIndex < fileString.length; fileIndex++)
+      for (var fileIndex = 0; fileIndex < rankArray[rankIndex].length; fileIndex++)
       {
-          board.setPieceIndex(fileIndex, rankIndex, fileString[fileIndex]);
+          board.setPieceIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
       }
    }
-    return JSON.stringify(board.getBoardArray());
+    return JSON.stringify(board.getBoardSquares());
+}
+
+function writeFenBoard(board)
+{
+    var boardSquares = board.getBoardSquares();
+    var fenSquares = [[], [], [], [], [], [], [], []];  //8 empty arrays
+    var fileIndex, rankIndex;
+   for (fileIndex = 0; fileIndex < boardSquares.length; fileIndex++)
+   {
+       //yes I know the board is always 8x8
+      for (rankIndex = 0; rankIndex < boardSquares[fileIndex].length; rankIndex++)
+      {
+          fenSquares[rankIndex].push(boardSquares[fileIndex][rankIndex]);
+      }
+   }
+    fenSquares.reverse();  //FEN starts with rank 8 instead of 1
+   fenSquares.forEach(function(element, index, array)
+   {
+       array[index] = element.join('');  //flatten 2d into 1d
+   });
+    var result = fenSquares.join('/');  //then join to string. I can't use .join('').join('/') because join converts 2d to string
+    //must be in this order to prevent pppppppp/2222/ etc
+    result = result.replace(/11111111/g, '8');
+    result = result.replace(/1111111/g, '7');
+    result = result.replace(/111111/g, '6');
+    result = result.replace(/11111/g, '5');
+    result = result.replace(/1111/g, '4');
+    result = result.replace(/111/g, '3');
+    result = result.replace(/11/g, '2');
+    return result;
 }
