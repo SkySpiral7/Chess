@@ -67,8 +67,9 @@ function Board(passedTurnIndicator)
     var black = {canKingsCastle: true, canQueensCastle: true};
     /**Not that if true then white will be calling this.move*/
     var isWhitesTurn = passedTurnIndicator;
+    var enPassantSquare = '-';
 
-    this.getState = function(){return {isWhitesTurn: isWhitesTurn, white: white, black: black};};
+    this.getState = function(){return {white: white, black: black, isWhitesTurn: isWhitesTurn, enPassantSquare: enPassantSquare};};
     this.getBoardSquares = function(){return boardSquares;};
    this.copy = function()
    {
@@ -83,6 +84,7 @@ function Board(passedTurnIndicator)
           boardSquares[fileIndex] = newBoardSquares[fileIndex].slice();  //shallow array copy
       }
        isWhitesTurn = newState.isWhitesTurn;
+       enPassantSquare = newState.enPassantSquare;
        white = {canKingsCastle: newState.white.canKingsCastle, canQueensCastle: newState.white.canQueensCastle};
        black = {canKingsCastle: newState.black.canKingsCastle, canQueensCastle: newState.black.canQueensCastle};
    };
@@ -91,6 +93,7 @@ function Board(passedTurnIndicator)
    this.move = function(source, destination)
    {
        //doesn't perform any move validation
+       enPassantSquare = '-';
        if(this.isKingCastling(source, destination)) this.performKingsCastle();
        else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
       else
@@ -104,6 +107,15 @@ function Board(passedTurnIndicator)
           else if(pieceMoved === 'R' && source === 'h1') white.canKingsCastle = false;
           else if(pieceMoved === 'r' && source === 'a8') black.canQueensCastle = false;
           else if(pieceMoved === 'r' && source === 'h8') black.canKingsCastle = false;
+         else if(pieceMoved === 'p' || pieceMoved === 'P')
+         {
+             var moveDifference = Math.abs(coordToIndex(source)[1] - coordToIndex(destination)[1]);
+            if (moveDifference === 2)  //double move occurred
+            {
+                if(isWhitesTurn) enPassantSquare = source[0] + '3';
+                else enPassantSquare = source[0] + '6';
+            }
+         }
       }
    };
    this.simpleMove = function(source, destination)
@@ -287,12 +299,12 @@ function parseFenBoard(board, text)
 /**The string returned has piece locations and the information that follows.*/
 function writeFenRow(board, fullMoveCount)
 {
+    var state = board.getState();
     var result = writeFenBoard(board) + ' ';
 
     if(board.isWhitesTurn()) result += 'w ';
     else result += 'b ';
 
-    var state = board.getState();
     var castleAbilityString = '';
     if(state.white.canKingsCastle) castleAbilityString += 'K';
     if(state.white.canQueensCastle) castleAbilityString += 'Q';
@@ -301,11 +313,8 @@ function writeFenRow(board, fullMoveCount)
     if(castleAbilityString === '') castleAbilityString = '-';
     result += castleAbilityString + ' ';
 
-    //TODO: board doesn't yet implement state.enPassantSquare
-    result += state.enPassantSquare + ' ';
-
     //TODO: board doesn't yet implement state.halfMoveCount
-    result += '0 ' + fullMoveCount;
+    result += state.enPassantSquare + ' 0 ' + fullMoveCount;
 
     return result;
 }
