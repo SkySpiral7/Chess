@@ -28,7 +28,7 @@ function indexToCoord(fileIndex, rankIndex)
 
 function Game()
 {
-    var boardArray = [new Board()];  //game starts with only initial starting positions
+    var boardArray = [new Board(true)];  //game starts with only initial starting positions
     //var isWhitesTurn = ((boardArray.length&1)===1);  //if odd
     //var fullMoveCount = Math.floor((boardArray.length-1)/2);
    this.getBoard = function(index)
@@ -36,16 +36,18 @@ function Game()
        if(index === undefined) index = boardArray.length - 1;  //last index
        return boardArray[index];
    };
+    this.addBoard = function(board){boardArray.push(board);};
    this.move = function(source, destination)
    {
        //copy and change the last (current) board
        var result = this.getBoard().copy();
        result.move(source, destination);
-       boardArray.push(result);
+       result.switchTurns();
+       this.addBoard(result);
    };
 }
 
-function Board()
+function Board(passedTurnIndicator)
 {
     var boardSquares =
    [  //this rotation makes coordinate translation easier but doesn't match FEN
@@ -61,21 +63,99 @@ function Board()
     //programmer readable variables to track board state
     var white = {canKingsCastle: true, canQueensCastle: true};
     var black = {canKingsCastle: true, canQueensCastle: true};
+    /**Not that if true then white will be calling this.move*/
+    var isWhitesTurn = passedTurnIndicator;
 
     this.getBoardSquares = function(){return boardSquares;};
    this.copy = function()
    {
-       var result = new Board();
-       result.boardSquares = boardSquares.slice();  //copy array
-       result.white = {canKingsCastle: white.canKingsCastle, canQueensCastle: white.canQueensCastle};
-       result.black = {canKingsCastle: black.canKingsCastle, canQueensCastle: black.canQueensCastle};
+       var result = new Board(isWhitesTurn);
+       result.setAll({boardSquares: boardSquares, white: white, black: black});  //pass in each private var
        return result;
    };
+   this.setAll = function(allValues)
+   {
+      for (var fileIndex = 0; fileIndex < allValues.boardSquares.length; fileIndex++)
+      {
+          boardSquares[fileIndex] = allValues.boardSquares[fileIndex].slice();  //shallow array copy
+      }
+       white = {canKingsCastle: allValues.white.canKingsCastle, canQueensCastle: allValues.white.canQueensCastle};
+       black = {canKingsCastle: allValues.black.canKingsCastle, canQueensCastle: allValues.black.canQueensCastle};
+   };
+    this.isWhitesTurn = function(){return isWhitesTurn;};
+    this.switchTurns = function(){isWhitesTurn = !isWhitesTurn;};
    this.move = function(source, destination)
    {
+       //doesn't perform any move validation
+       if(this.isKingCastling(source, destination)) this.performKingsCastle();
+       else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
+      else
+      {
+          var pieceMoved = this.getPiece(source);
+          this.simpleMove(source, destination);
+          //castling ability will be set to false redundantly and that's ok
+          if(pieceMoved === 'K') white = {canKingsCastle: false, canQueensCastle: false};
+          else if(pieceMoved === 'k') black = {canKingsCastle: false, canQueensCastle: false};
+          else if(pieceMoved === 'R' && source === 'a1') white.canQueensCastle = false;
+          else if(pieceMoved === 'R' && source === 'h1') white.canKingsCastle = false;
+          else if(pieceMoved === 'r' && source === 'a8') black.canQueensCastle = false;
+          else if(pieceMoved === 'r' && source === 'h8') black.canKingsCastle = false;
+      }
+   };
+   this.simpleMove = function(source, destination)
+   {
+       //doesn't perform any move validation
        var result = this.getPiece(source);
        this.setPiece(source, '1');  //make source empty
        this.setPiece(destination, result);
+   };
+   this.isKingCastling = function(source, destination)
+   {
+       var symbol = this.getPiece(source);
+       //assume that isWhitesTurn matches the color of the king
+       //doesn't perform any other move validation
+       if(symbol === 'K' && destination === 'g1') return white.canKingsCastle;
+       if(symbol === 'k' && destination === 'g8') return black.canKingsCastle;
+       return false;
+   };
+   this.isQueenCastling = function(source, destination)
+   {
+       var symbol = this.getPiece(source);
+       //assume that isWhitesTurn matches the color of the king
+       //doesn't perform any other move validation
+       if(symbol === 'K' && destination === 'c1') return white.canQueensCastle;
+       if(symbol === 'k' && destination === 'c8') return black.canQueensCastle;
+       return false;
+   };
+   this.performKingsCastle = function()
+   {
+      if (isWhitesTurn)
+      {
+          white = {canKingsCastle: false, canQueensCastle: false};
+          this.simpleMove('h1', 'f1');  //moves the rook
+          this.simpleMove('e1', 'g1');  //moves the king
+      }
+      else
+      {
+          black = {canKingsCastle: false, canQueensCastle: false};
+          this.simpleMove('h8', 'f8');  //moves the rook
+          this.simpleMove('e8', 'g8');  //moves the king
+      }
+   };
+   this.performQueensCastle = function()
+   {
+      if (isWhitesTurn)
+      {
+          white = {canKingsCastle: false, canQueensCastle: false};
+          this.simpleMove('a1', 'd1');  //moves the rook
+          this.simpleMove('e1', 'c1');  //moves the king
+      }
+      else
+      {
+          black = {canKingsCastle: false, canQueensCastle: false};
+          this.simpleMove('a8', 'd8');  //moves the rook
+          this.simpleMove('e8', 'c8');  //moves the king
+      }
    };
    this.setPiece = function(coord, symbol)
    {
@@ -100,36 +180,50 @@ function Board()
 function parseMinimumCoordinateNotationGame(text)
 {
     // /^[A-H][1-8][A-H][1-8][QBNR]?$/i
-    return parseMinimumCoordinateNotationMove(new Board(), text);
+    var game = new Game();
+    game.addBoard(parseMinimumCoordinateNotationMove(game.getBoard(), text));
+    return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
 function parseMinimumCoordinateNotationMove(board, text)
 {
     //eg: a7a8q
-    board.move(text.substr(0, 2), text.substr(2, 2));
-    if(text.length === 5) board.setPiece(text.substr(2, 2), text[4]);
-    return JSON.stringify(board.getBoardSquares());
+    board = board.copy();
+    var destination = text.substr(2, 2);
+    board.move(text.substr(0, 2), destination);
+   if (text.length === 5)
+   {
+       var symbol = text[4];
+       if(board.isWhitesTurn()) symbol = symbol.toUpperCase();
+       else symbol = symbol.toLowerCase();
+       board.setPiece(destination, symbol);  //the symbol for setPiece is case sensitive
+   }
+    board.switchTurns();
+    return board;
 }
 
 function parseFriendlyCoordinateNotationGame(text)
 {
     // /^(?:[KQ]C|P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?)\+?#?$/i
-    return parseFriendlyCoordinateNotationMove(new Board(), text, true);
+    var game = new Game();
+    game.addBoard(parseFriendlyCoordinateNotationMove(game.getBoard(), text));
+    return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
-function parseFriendlyCoordinateNotationMove(board, text, isWhitesTurn)
+function parseFriendlyCoordinateNotationMove(board, text)
 {
     //eg: Ra1-a8xQ, Pa7-B8xR=q or Pa7-A8=N, Pa5-b6en, KC, QC, Ra1-a8+#
     text = text.toLowerCase();
-   if (isWhitesTurn)
+   if (board.isWhitesTurn())
    {
-       //TODO: castling is not yet implemented by Board
        if(text === 'kc') return parseMinimumCoordinateNotationMove(board, 'e1g1');
        if(text === 'qc') return parseMinimumCoordinateNotationMove(board, 'e1c1');
    }
-    //if black's turn
-    if(text === 'kc') return parseMinimumCoordinateNotationMove(board, 'e8g8');
-    if(text === 'qc') return parseMinimumCoordinateNotationMove(board, 'e8c8');
+   else  //if black's turn
+   {
+       if(text === 'kc') return parseMinimumCoordinateNotationMove(board, 'e8g8');
+       if(text === 'qc') return parseMinimumCoordinateNotationMove(board, 'e8c8');
+   }
 
     text = text.substring(1);  //remove piece symbol
     text = text.replace(/x./, '');  //remove capture information
@@ -141,7 +235,9 @@ function parseFriendlyCoordinateNotationMove(board, text, isWhitesTurn)
 function parseShortenedFenGame(text)
 {
    // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
-   return parseShortenedFenRow(new Board(), text);
+    var game = new Game();
+    game.addBoard(parseShortenedFenRow(game.getBoard(), text));
+    return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
 /**This only the piece locations and the information that follows.*/
@@ -155,6 +251,7 @@ function parseShortenedFenRow(board, text)
 function parseFenBoard(board, text)
 {
    //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
+    board = board.copy();
     //this order is logical and most efficient due to slowest string growth rate
     text = text.replace(/2/g, '11');
     text = text.replace(/3/g, '111');
@@ -174,9 +271,11 @@ function parseFenBoard(board, text)
           board.setPieceIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
       }
    }
-    return JSON.stringify(board.getBoardSquares());
+    board.switchTurns();
+    return board;
 }
 
+/**The string returned is only the piece locations.*/
 function writeFenBoard(board)
 {
     var boardSquares = board.getBoardSquares();
