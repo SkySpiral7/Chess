@@ -83,15 +83,7 @@ Parse.MinimumCoordinateNotationMove = function(board, text)
 {
     //eg: a7a8q
     board = board.copy();
-    var destination = text.substr(2, 2);
-    board.move(text.substr(0, 2), destination);
-   if (text.length === 5)
-   {
-       var symbol = text[4];
-       if(board.isWhitesTurn()) symbol = symbol.toUpperCase();
-       else symbol = symbol.toLowerCase();
-       board.setPiece(destination, symbol);  //the symbol for setPiece is case sensitive
-   }
+    board.move(text.substr(0, 2), text.substr(2, 2), text[4]);  //text[4] might be undefined
     board.switchTurns();
     return board;
 }
@@ -132,24 +124,41 @@ Parse.ShortenedFenGame = function(text)
 {
    // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
     var game = new Game();
-    game.addBoard(Parse.ShortenedFenRow(game.getBoard(), text));
+    game.addBoard(Parse.ShortenedFenRow(text));
     //method stub
     return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
 /**This parses the piece locations and the information that follows.*/
-Parse.ShortenedFenRow = function(board, text)
+Parse.ShortenedFenRow = function(text)
 {
-   //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
-    //method stub
-   return Parse.FenBoard(board, text);
+    //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
+    text = text.replace(/\s+/g, ' ');
+    var sections = text.split(' ');
+    var board = new Board(true);  //assume white's turn if information isn't available
+
+    if(sections.length === 1){Parse.FenBoard(board, text); return board;}
+
+    var newState = {isWhitesTurn: (sections[1].toLowerCase() === 'w')};
+
+    //newState.white.canKingsCastle = (sections[2][0] === 'K') it's the only one that can do that but I decided not to in order to keep them lined up
+    newState.white = {canKingsCastle: (sections[2].indexOf('K') !== -1), canQueensCastle: (sections[2].indexOf('Q') !== -1)};
+    newState.black = {canKingsCastle: (sections[2].indexOf('k') !== -1), canQueensCastle: (sections[2].indexOf('q') !== -1)};
+    //if sections[2] === '-' then everything is already set to false
+
+    if((/^[A-H][1-8]$/i).test(sections[3])) newState.enPassantSquare = sections[3].toUpperCase();
+
+    //TODO: doesn't detect +#
+    board.changeState(newState);
+    Parse.FenBoard(board, sections[0]);
+    return board;
 }
 
 /**This only parses the piece locations.*/
 Parse.FenBoard = function(board, text)
 {
-   //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
-    board = board.copy();
+    //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
+    //doesn't copy the board because a new one was passed in
     //this order is logical and most efficient due to slowest string growth rate
     text = text.replace(/2/g, '11');
     text = text.replace(/3/g, '111');
@@ -169,8 +178,7 @@ Parse.FenBoard = function(board, text)
           board.setPieceIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
       }
    }
-    board.switchTurns();  //TODO: Parse.FenBoard only needs to know whose turn it is
-    return board;  //TODO: Parse.FenBoard doesn't call board.move therefore the board state isn't updated
+    //TODO: Parse.FenBoard doesn't call board.move therefore the board state isn't updated
 }
 
 /**The string returned has piece locations and the information that follows.*/

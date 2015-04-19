@@ -12,11 +12,11 @@ function Game()
        return boardArray[index];
    };
     this.addBoard = function(board){boardArray.push(board);};
-   this.move = function(source, destination)
+   this.move = function(source, destination, promotedTo)
    {
        //copy and change the last (current) board
        var result = this.getBoard().copy();
-       result.move(source, destination);
+       result.move(source, destination, promotedTo);
        result.switchTurns();
        this.addBoard(result);
    };
@@ -51,6 +51,27 @@ function Board(passedTurnIndicator)
        result.setAll(boardSquares, this.getState());  //indirectly pass in each private var
        return result;
    };
+   this.changeState = function(stateChange)
+   {
+       var newState = this.getState();  //default to current state
+      for (var state in stateChange)
+      {
+          if(stateChange.hasOwnProperty(state) && typeof(stateChange[state]) !== 'object') newState[state] = stateChange[state];
+          //don't shallow copy white/black because it would delete k/q if not passed in
+      }
+       //manually copy white and black
+      if (stateChange.white !== undefined)
+      {
+          if(stateChange.white.canKingsCastle !== undefined) newState.white.canKingsCastle = stateChange.white.canKingsCastle;
+          if(stateChange.white.canQueensCastle !== undefined) newState.white.canQueensCastle = stateChange.white.canQueensCastle;
+      }
+      if (stateChange.black !== undefined)
+      {
+          if(stateChange.black.canKingsCastle !== undefined) newState.black.canKingsCastle = stateChange.black.canKingsCastle;
+          if(stateChange.black.canQueensCastle !== undefined) newState.black.canQueensCastle = stateChange.black.canQueensCastle;
+      }
+       this.setAll(boardSquares, newState);
+   };
    this.setAll = function(newBoardSquares, newState)
    {
       for (var fileIndex = 0; fileIndex < newBoardSquares.length; fileIndex++)
@@ -65,7 +86,7 @@ function Board(passedTurnIndicator)
    };
     this.isWhitesTurn = function(){return isWhitesTurn;};
     this.switchTurns = function(){isWhitesTurn = !isWhitesTurn;};
-   this.move = function(source, destination)
+   this.move = function(source, destination, promotedTo)
    {
        //TODO: it isn't currently possible to preform an en passant
        //doesn't perform any move validation
@@ -92,6 +113,11 @@ function Board(passedTurnIndicator)
             {
                 if(isWhitesTurn) enPassantSquare = source[0] + '3';
                 else enPassantSquare = source[0] + '6';
+            }
+            else if (promotedTo !== undefined)
+            {
+                if(isWhitesTurn) this.setPiece(destination, promotedTo.toUpperCase());
+                else this.setPiece(destination, promotedTo.toLowerCase());
             }
          }
       }
