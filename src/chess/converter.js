@@ -26,6 +26,49 @@ function indexToCoord(fileIndex, rankIndex)
     return coord;
 }
 
+/**Returns an array of every coordinate that is difference between the 2 boards.*/
+function findBoardDifferences(beforeBoard, afterBoard)
+{
+    var beforeSquares = beforeBoard.getBoardSquares();
+    var afterSquares = afterBoard.getBoardSquares();
+    var differences = [];  //length will be 2 or 4 for valid moves
+   for (var fileIndex = 0; fileIndex < beforeSquares.length; fileIndex++)
+   {
+      for (var rankIndex = 0; rankIndex < beforeSquares[fileIndex].length; rankIndex++)
+      {
+          if(beforeSquares[fileIndex][rankIndex] !== afterSquares[fileIndex][rankIndex]) differences.push(indexToCoord(fileIndex, rankIndex));
+      }
+   }
+    return differences;
+}
+/**Returns the move that caused the beforeBoard to become the afterBoard.
+Returns strings KC or QC for castling. Or returns an object with the properties source, destination, and promotedTo.
+The first are coordinates and the last being the piece symbol (or undefined).*/
+function findBoardMove(beforeBoard, afterBoard)
+{
+    var differences = findBoardDifferences(beforeBoard, afterBoard);
+   if (differences.length === 4)  //castling occurred.
+   {
+       //all castling will involve one of the 4 corners which can be used to determine which side it was
+       //note that the coordinates returned are all upper case
+       if(differences.indexOf('A1') !== -1 || differences.indexOf('A8') !== -1) return 'QC';
+       //if(differences.indexOf('H1') !== -1 || differences.indexOf('H8') !== -1)  //no need to check since this is the only other one
+       return 'KC';
+   }
+   else  //length is 2
+   {
+       var source = differences[0], destination = differences[1];  //guess the order
+       if(afterBoard.getPiece(destination) === '1'){source = destination; destination = differences[0];}  //correct if wrong
+          //if the after location is empty then the piece was moved from that spot
+      if (beforeBoard.getPiece(source).toLowerCase() === 'p' && afterBoard.getPiece(destination).toLowerCase() !== 'p')
+          //if was pawn but now isn't then promotion occurred
+      {
+          return {source: source, destination: destination, promotedTo: afterBoard.getPiece(destination)};
+      }
+       return {source: source, destination: destination};
+   }
+}
+
 var Parse = {};
 Parse.MinimumCoordinateNotationGame = function(text)
 {
@@ -126,8 +169,8 @@ Parse.FenBoard = function(board, text)
           board.setPieceIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
       }
    }
-    board.switchTurns();
-    return board;
+    board.switchTurns();  //TODO: Parse.FenBoard only needs to know whose turn it is
+    return board;  //TODO: Parse.FenBoard doesn't call board.move therefore the board state isn't updated
 }
 
 /**The string returned has piece locations and the information that follows.*/
@@ -183,4 +226,26 @@ Write.FenBoard = function(board)
     result = result.replace(/111/g, '3');
     result = result.replace(/11/g, '2');
     return result;
+}
+
+Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
+{
+    var move = findBoardMove(beforeBoard, afterBoard);
+    if(typeof(move) === 'string') return move.toUpperCase();  //KC or QC
+
+    var result = beforeBoard.getPiece(move.source);  //start with piece symbol
+    result += move.source + '-' + move.destination;
+
+    var capturedPiece = afterBoard.getState().capturedPiece;
+   if (capturedPiece !== '1')
+   {
+       if(beforeBoard.getState().enPassantSquare === move.destination) result += 'en';
+          //the enPassantSquare is always empty therefore the only way for a capture to occur by moving there is via en passant
+          //enPassantSquare defaults to '-' if it doesn't apply which won't match any possible destination coordinate
+       else result += 'x' + capturedPiece;
+   }
+
+    if(move.promotedTo !== undefined) result += '=' + move.promotedTo;
+    //TODO: doesn't detect +#
+    return result.toUpperCase();
 }

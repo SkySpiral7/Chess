@@ -8,6 +8,7 @@ function Game()
    this.getBoard = function(index)
    {
        if(index === undefined) index = boardArray.length - 1;  //last index
+       else if(index < 0) index += boardArray.length;  //from end
        return boardArray[index];
    };
     this.addBoard = function(board){boardArray.push(board);};
@@ -66,6 +67,7 @@ function Board(passedTurnIndicator)
     this.switchTurns = function(){isWhitesTurn = !isWhitesTurn;};
    this.move = function(source, destination)
    {
+       //TODO: it isn't currently possible to preform an en passant
        //doesn't perform any move validation
        enPassantSquare = '-';
        capturedPiece = '1';
