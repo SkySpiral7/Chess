@@ -20,6 +20,24 @@ function Game()
        result.switchTurns();
        this.addBoard(result);
    };
+   this.resetStates = function()
+   {
+       //the initial board (aka starting position) always has correct state
+      for (var boardIndex = 1; boardIndex < boardArray.length; boardIndex++)
+      {
+          var oldBoard = boardArray[boardIndex - 1].copy();  //copy the previous board because I need to change it
+          var move = findBoardMove(oldBoard, boardArray[boardIndex]);  //get move required to go from oldBoard to current board
+
+          //have the oldBoard do that move
+          if(move === 'KC') oldBoard.performKingsCastle();
+          else if(move === 'QC') oldBoard.performQueensCastle();
+          else oldBoard.move(move[0], move[1], move[3]);  //move[3] might be undefined
+
+          //now oldBoard has the same positions as the current board
+          //but because the movement functions were used the state will be correct
+          boardArray[boardIndex] = oldBoard;
+      }
+   };
 }
 
 function Board(passedTurnIndicator)

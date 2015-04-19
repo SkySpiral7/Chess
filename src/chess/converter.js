@@ -124,18 +124,19 @@ Parse.ShortenedFenGame = function(text)
 {
    // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
     var game = new Game();
-    game.addBoard(Parse.ShortenedFenRow(text));
+    game.addBoard(Parse.ShortenedFenRow(game.getBoard().isWhitesTurn(), text));
     //method stub
+    game.resetStates();  //TODO: this overrides some state information already established (castling and en passant)
     return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
 /**This parses the piece locations and the information that follows.*/
-Parse.ShortenedFenRow = function(text)
+Parse.ShortenedFenRow = function(isWhitesTurn, text)
 {
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
     text = text.replace(/\s+/g, ' ');
     var sections = text.split(' ');
-    var board = new Board(true);  //assume white's turn if information isn't available
+    var board = new Board(!isWhitesTurn);  //assume the opposite turn if information isn't available
 
     if(sections.length === 1){Parse.FenBoard(board, text); return board;}
 
@@ -178,7 +179,6 @@ Parse.FenBoard = function(board, text)
           board.setPieceIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
       }
    }
-    //TODO: Parse.FenBoard doesn't call board.move therefore the board state isn't updated
 }
 
 /**The string returned has piece locations and the information that follows.*/
