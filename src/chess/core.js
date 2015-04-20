@@ -31,7 +31,8 @@ function Game()
           //have the oldBoard do that move
           if(move === 'KC') oldBoard.performKingsCastle();
           else if(move === 'QC') oldBoard.performQueensCastle();
-          else oldBoard.move(move[0], move[1], move[3]);  //move[3] might be undefined
+          else if(move.enPassantOccurred) oldBoard.performEnPassant(move.source);
+          else oldBoard.move(move.source, move.destination, move.promotedTo);  //promotedTo might be undefined
 
           //now oldBoard has the same positions as the current board
           //but because the movement functions were used the state will be correct
@@ -59,6 +60,8 @@ function Board(passedTurnIndicator)
     /**Not that if true then white will be calling this.move*/
     var isWhitesTurn = passedTurnIndicator;
     var enPassantSquare = '-';
+    /**The piece symbol that was captured by the last move.
+    Will be '1' if nothing was captured and 'EN' if it was an en passant.*/
     var capturedPiece = '1';
 
     this.getState = function(){return {white: white, black: black, isWhitesTurn: isWhitesTurn, enPassantSquare: enPassantSquare, capturedPiece: capturedPiece};};
@@ -106,38 +109,19 @@ function Board(passedTurnIndicator)
     this.switchTurns = function(){isWhitesTurn = !isWhitesTurn;};
    this.move = function(source, destination, promotedTo)
    {
-       //TODO: it isn't currently possible to preform an en passant
        //doesn't perform any move validation
-       enPassantSquare = '-';
-       capturedPiece = '1';
        if(this.isKingCastling(source, destination)) this.performKingsCastle();
        else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
+       else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source);
       else
       {
+          enPassantSquare = '-';
           var pieceMoved = this.getPiece(source);
           capturedPiece = this.getPiece(destination);
+
           this.simpleMove(source, destination);
-          //castling ability will be set to false redundantly and that's ok
-          if(pieceMoved === 'K') white = {canKingsCastle: false, canQueensCastle: false};
-          else if(pieceMoved === 'k') black = {canKingsCastle: false, canQueensCastle: false};
-          else if(pieceMoved === 'R' && source === 'a1') white.canQueensCastle = false;
-          else if(pieceMoved === 'R' && source === 'h1') white.canKingsCastle = false;
-          else if(pieceMoved === 'r' && source === 'a8') black.canQueensCastle = false;
-          else if(pieceMoved === 'r' && source === 'h8') black.canKingsCastle = false;
-         else if(pieceMoved === 'p' || pieceMoved === 'P')
-         {
-             var moveDifference = Math.abs(coordToIndex(source)[1] - coordToIndex(destination)[1]);
-            if (moveDifference === 2)  //double move occurred
-            {
-                if(isWhitesTurn) enPassantSquare = source[0] + '3';
-                else enPassantSquare = source[0] + '6';
-            }
-            else if (promotedTo !== undefined)
-            {
-                if(isWhitesTurn) this.setPiece(destination, promotedTo.toUpperCase());
-                else this.setPiece(destination, promotedTo.toLowerCase());
-            }
-         }
+          this.castlingAbilityLoss(pieceMoved, source);
+          if(pieceMoved === 'p' || pieceMoved === 'P') this.handlePawnMove(source, destination, promotedTo);
       }
    };
    this.simpleMove = function(source, destination)
@@ -146,6 +130,35 @@ function Board(passedTurnIndicator)
        var result = this.getPiece(source);
        this.setPiece(source, '1');  //make source empty
        this.setPiece(destination, result);
+   };
+   this.castlingAbilityLoss = function(pieceMoved, source)
+   {
+       //castling ability will be set to false redundantly and that's ok
+       if(pieceMoved === 'K') white = {canKingsCastle: false, canQueensCastle: false};
+       else if(pieceMoved === 'k') black = {canKingsCastle: false, canQueensCastle: false};
+       else if(pieceMoved === 'R' && source === 'a1') white.canQueensCastle = false;
+       else if(pieceMoved === 'R' && source === 'h1') white.canKingsCastle = false;
+       else if(pieceMoved === 'r' && source === 'a8') black.canQueensCastle = false;
+       else if(pieceMoved === 'r' && source === 'h8') black.canKingsCastle = false;
+   };
+   this.handlePawnMove = function(source, destination, promotedTo)
+   {
+       var moveDifference = Math.abs(coordToIndex(source)[1] - coordToIndex(destination)[1]);
+      if (moveDifference === 2)  //double move occurred
+      {
+          if(isWhitesTurn) enPassantSquare = source[0] + '3';
+          else enPassantSquare = source[0] + '6';
+      }
+      else if (promotedTo !== undefined)
+      {
+          if(isWhitesTurn) this.setPiece(destination, promotedTo.toUpperCase());
+          else this.setPiece(destination, promotedTo.toLowerCase());
+      }
+   };
+   this.isEnPassantOccurring = function(source, destination)
+   {
+       var symbol = this.getPiece(source);
+       return (symbol.toUpperCase() === 'P' && destination === enPassantSquare);
    };
    this.isKingCastling = function(source, destination)
    {
@@ -165,8 +178,23 @@ function Board(passedTurnIndicator)
        if(symbol === 'k' && destination === 'c8') return black.canQueensCastle;
        return false;
    };
+   this.performEnPassant = function(source)
+   {
+       var destination = enPassantSquare;
+       enPassantSquare = '-';
+       capturedPiece = 'EN';
+       this.simpleMove(source, destination);
+
+       var deadPawnSquare;
+       if(isWhitesTurn) deadPawnSquare = destination[0] + '4';
+       else deadPawnSquare = destination[0] + '5';
+
+       this.setPiece(deadPawnSquare, '1');
+   };
    this.performKingsCastle = function()
    {
+       enPassantSquare = '-';
+       capturedPiece = '1';
       if (isWhitesTurn)
       {
           white = {canKingsCastle: false, canQueensCastle: false};
@@ -182,6 +210,8 @@ function Board(passedTurnIndicator)
    };
    this.performQueensCastle = function()
    {
+       enPassantSquare = '-';
+       capturedPiece = '1';
       if (isWhitesTurn)
       {
           white = {canKingsCastle: false, canQueensCastle: false};

@@ -31,7 +31,7 @@ function findBoardDifferences(beforeBoard, afterBoard)
 {
     var beforeSquares = beforeBoard.getBoardSquares();
     var afterSquares = afterBoard.getBoardSquares();
-    var differences = [];  //length will be 2 or 4 for valid moves
+    var differences = [];  //length will be 2, 3, or 4 for valid moves (simple, en passant, castling)
    for (var fileIndex = 0; fileIndex < beforeSquares.length; fileIndex++)
    {
       for (var rankIndex = 0; rankIndex < beforeSquares[fileIndex].length; rankIndex++)
@@ -42,18 +42,32 @@ function findBoardDifferences(beforeBoard, afterBoard)
     return differences;
 }
 /**Returns the move that caused the beforeBoard to become the afterBoard.
-Returns strings KC or QC for castling. Or returns an object with the properties source, destination, and promotedTo.
-The first are coordinates and the last being the piece symbol (or undefined).*/
+Returns strings KC or QC for castling. Or returns an object with the properties: source, destination, promotedTo, and enPassantOccurred.
+The first 2 are coordinates. promotedTo is the piece symbol (or undefined) and enPassantOccurred is true or undefined.*/
 function findBoardMove(beforeBoard, afterBoard)
 {
     var differences = findBoardDifferences(beforeBoard, afterBoard);
-   if (differences.length === 4)  //castling occurred.
+   if (differences.length === 4)  //castling occurred
    {
        //all castling will involve one of the 4 corners which can be used to determine which side it was
        //note that the coordinates returned are all upper case
        if(differences.indexOf('A1') !== -1 || differences.indexOf('A8') !== -1) return 'QC';
        //if(differences.indexOf('H1') !== -1 || differences.indexOf('H8') !== -1)  //no need to check since this is the only other one
        return 'KC';
+   }
+   else if (differences.length === 3)  //en passant occurred
+   {
+       var destination = beforeBoard.getState().enPassantSquare;
+       differences.splice(differences.indexOf(destination), 1);  //remove destination from the array
+
+       var deadPawnSquare;
+       if(isWhitesTurn) deadPawnSquare = destination[0] + '4';
+       else deadPawnSquare = destination[0] + '5';
+
+       differences.splice(differences.indexOf(deadPawnSquare), 1);  //remove deadPawnSquare from the array
+       var source = differences[0];  //source is the only element left
+
+       return {source: source, destination: destination, enPassantOccurred: true};
    }
    else  //length is 2
    {
@@ -239,19 +253,14 @@ Write.FenBoard = function(board)
 Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
 {
     var move = findBoardMove(beforeBoard, afterBoard);
-    if(typeof(move) === 'string') return move.toUpperCase();  //KC or QC
+    if(move === 'KC' || move === 'QC') return move;
 
     var result = beforeBoard.getPiece(move.source);  //start with piece symbol
     result += move.source + '-' + move.destination;
 
     var capturedPiece = afterBoard.getState().capturedPiece;
-   if (capturedPiece !== '1')
-   {
-       if(beforeBoard.getState().enPassantSquare === move.destination) result += 'en';
-          //the enPassantSquare is always empty therefore the only way for a capture to occur by moving there is via en passant
-          //enPassantSquare defaults to '-' if it doesn't apply which won't match any possible destination coordinate
-       else result += 'x' + capturedPiece;
-   }
+    if(capturedPiece === 'EN') result += 'EN';
+    else if(capturedPiece !== '1') result += 'x' + capturedPiece;
 
     if(move.promotedTo !== undefined) result += '=' + move.promotedTo;
     //TODO: doesn't detect +#
