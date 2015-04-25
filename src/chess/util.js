@@ -72,3 +72,21 @@ function findBoardMove(beforeBoard, afterBoard)
        return {source: source, destination: destination};
    }
 }
+/**Resets the state of the afterPositions*/
+function resetState(beforeBoard, afterPositions)
+{
+    var move = findBoardMove(beforeBoard, afterPositions);  //get move required to go from beforeBoard to afterPositions
+    var afterBoard = beforeBoard.copy();  //copy beforeBoard because I need to change it
+    afterBoard.switchTurns();
+
+    //have the afterBoard do that move
+    if(move === 'KC') afterBoard.performKingsCastle();
+    else if(move === 'QC') afterBoard.performQueensCastle();
+    else if(move.enPassantOccurred) afterBoard.performEnPassant(move.source);
+    else afterBoard.move(move.source, move.destination, move.promotedTo);  //promotedTo might be undefined
+
+    //now afterBoard has the same positions as afterPositions
+    //but because the movement functions were used the state will be correct
+    //therefore correct the state of afterPositions
+    afterPositions.changeState(afterBoard.getState());
+}
