@@ -1,13 +1,3 @@
-//my definitions: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
-/*PGN definitions (I think they are all the same):
-original (links): https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
-nice links but more than pgn: http://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm
-less but still plain txt: http://www6.chessclub.com/help/PGN-spec
-plain txt: http://www.opensource.apple.com/source/Chess/Chess-109.0.3/Documentation/PGN-Standard.txt
-very plain txt: http://www.tim-mann.org/Standard
-wikip: http://en.wikipedia.org/wiki/Portable_Game_Notation
-*/
-
 function coordToIndex(coord)
 {
     var indexies = [0, 0];
@@ -84,12 +74,76 @@ function findBoardMove(beforeBoard, afterBoard)
 }
 
 var Parse = {};
-Parse.MinimumCoordinateNotationGame = function(text)
+Parse.PortableGameNotation = function(text)
+{
+    //PGN original definition: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
+   //game sanitation
+    text = text.trim();
+    if(text[0] === '%') text[0] = ';';  //section 6. the useless token that does the same thing as an already existing one
+    text = text.replace(/\r\n?/g, '\n');  //section 3.2.2: export uses \n but imports should allow whatever end line
+    text = text.replace(/;.*?\n/g, '');  //section 5. rest of line comment. the only thing that requires end lines
+    text = text.replace(/;.*$/, '');  //remove the single line comment at the end since it doesn't have an end line
+    text = text.replace(/\s+/g, ' ');  //section 7 and others indicate that all other white space is treated the same
+    text = text.replace(/\\"|\\/g, '');  //there are no strings that I read in which " or \ could be used. so ignore for easy parsing
+    //TODO: the above technically corrupts the move text section
+
+   //tag section
+    var setUp, format = 'san';  //default is for compatibility
+    var tagRegEx = /^ ?\[ ?(\w+) "([^"]*)" ?\]/;
+    var tag = tagRegEx.exec(text);
+   while (tag !== null)
+   {
+       var name = tag[1].toLowerCase();
+       var value = tag[2].toLowerCase();
+
+       if(name === 'format') format = value;
+       //if(name === 'setup')  //TODO: SetUp tag not yet supported
+
+       text = text.replace(tagRegEx, '');  //remove the tag I just read
+       tag = tagRegEx.exec(text);
+   }
+
+    //TODO: put sections into functions
+   //find parser
+    var parser;
+    format = format.replace(/:.*$/, '');  //remove the first : and everything after it
+    if(format === 'mcn') parser = Parse.MinimumCoordinateNotationGame;
+    else if(format === 'fcn') parser = Parse.FriendlyCoordinateNotationGame;
+    else if(format === 'sfen') parser = Parse.ShortenedFenGame;
+    else throw new Error('Move text format '+format.toUpperCase() +' is not supported.');
+    //TODO: doesn't support binary format
+
+   //move text sanitation
+    text = text.replace(/\[.*?\]/g, '');  //section 5. remove block comments
+    text = text.replace(/\$\d+/g, '');  //section 7. remove Numeric Annotation Glyph (NAG)
+    text = text.replace(/\b\d+\.*(?:\.| )/g, '');  //section 7 and 8.2.2. remove move numbers which are optional
+    //text = text.replace(/\(.*?\)/g, '');  //section 7. Recursive Annotation Variations (RAV) TODO: are not so easily removed
+
+   //move text section
+    var moveArray = [];
+    var moveRegEx = /^ ?(\S+)(?: (\S+))?/;  //TODO: this regex doesn't work for fen
+    var moveText = moveRegEx.exec(text);
+   while (moveText !== null)
+   {
+       moveArray.push(moveText[1]);  //white's move
+       if(moveText[2] !== undefined) moveArray.push(moveText[2]);  //black's move
+
+       text = text.replace(moveRegEx, '');  //remove the move text I just read
+       moveText = moveRegEx.exec(text);
+   }
+    //game termination markers are thrown away. does not support multiple games
+
+    return parser(moveArray);
+}
+//TODO: add validation to the parsers
+//TODO: split parsers and writers etc into new files
+
+Parse.MinimumCoordinateNotationGame = function(moveArray)
 {
     // /^[A-H][1-8][A-H][1-8][QBNR]?$/i
     var game = new Game();
-    game.addBoard(Parse.MinimumCoordinateNotationMove(game.getBoard(), text));
-    //TODO: method stubs
+    for(var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
+       {game.addBoard(Parse.MinimumCoordinateNotationMove(game.getBoard(), moveArray[moveIndex]));}
     return JSON.stringify(game.getBoard().getBoardSquares());
 }
 
@@ -102,13 +156,13 @@ Parse.MinimumCoordinateNotationMove = function(board, text)
     return board;
 }
 
-Parse.FriendlyCoordinateNotationGame = function(text)
+Parse.FriendlyCoordinateNotationGame = function(moveArray)
 {
     // /^(?:[KQ]C|P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?)\+?#?$/i
     var game = new Game();
-    game.addBoard(Parse.FriendlyCoordinateNotationMove(game.getBoard(), text));
-    //method stub
-    return JSON.stringify(game.getBoard().getBoardSquares());
+    for(var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
+       {game.addBoard(Parse.FriendlyCoordinateNotationMove(game.getBoard(), moveArray[moveIndex]));}
+    return game.getBoard();
 }
 
 Parse.FriendlyCoordinateNotationMove = function(board, text)
@@ -129,17 +183,17 @@ Parse.FriendlyCoordinateNotationMove = function(board, text)
 
     text = text.substring(1);  //remove piece symbol
     text = text.replace(/x./, '');  //remove capture information
-    text = text.replace('en', '');  //ditto
+    text = text.replace('en', '');  //ditto. I could have called board.performEnPassant() directly but MinimumCoordinateNotationMove will handle that
     text = text.replace(/[+#=-]/g, '');  //remove check/end game indicators and human friendly padding
     return Parse.MinimumCoordinateNotationMove(board, text);
 }
 
-Parse.ShortenedFenGame = function(text)
+Parse.ShortenedFenGame = function(moveArray)
 {
    // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?$/
     var game = new Game();
-    game.addBoard(Parse.ShortenedFenRow(game.getBoard().isWhitesTurn(), text));
-    //method stub
+    for(var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
+       {game.addBoard(Parse.ShortenedFenRow(game.getBoard().isWhitesTurn(), moveArray[moveIndex]));}
     game.resetStates();  //TODO: this overrides some state information already established (castling and en passant)
     return JSON.stringify(game.getBoard().getBoardSquares());
 }
@@ -200,7 +254,7 @@ var Write = {};
 Write.FenRow = function(board, fullMoveCount)
 {
     var state = board.getState();
-    var result = writeFenBoard(board) + ' ';
+    var result = Write.FenBoard(board) + ' ';
 
     if(board.isWhitesTurn()) result += 'w ';
     else result += 'b ';
