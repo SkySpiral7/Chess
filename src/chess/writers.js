@@ -69,3 +69,17 @@ Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
     //TODO: doesn't detect +#
     return result.toUpperCase();
 }
+
+Write.GameBoardSquareArray = function(game)
+{
+    var resultArray = [];
+   for (var i=0; i < game.getBoardArray().length; i++)
+   {
+       resultArray.push(game.getBoard(i).getBoardSquares());
+   }
+    var resultString = JSON.stringify(resultArray).replace(/"/g, '\'');
+    resultString = resultString.replace(/\],\[/g, '],\r\n       [');
+    resultString = resultString.replace(/\]\],/g, ']\r\n   ],');
+    resultString = resultString.replace(/       \[\[/g, '   [\r\n       [');
+    return resultString;
+}

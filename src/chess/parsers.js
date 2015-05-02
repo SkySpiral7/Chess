@@ -8,11 +8,7 @@ Parse.PortableGameNotation = function(text)
     var parser = findParser(tagReturnValue.format);
     text = moveTextSanitation(text);
     var moveArray = moveTextSection(text);  //although text is modified it doesn't need to be returned because it isn't used again
-
-    var game = new Game();
-    for(var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
-       {game.addBoard(parser(game.getBoard(), moveArray[moveIndex]));}
-    return JSON.stringify(game.getBoard().getBoardSquares());
+    return gameCreation(parser, moveArray);
 
    function gameSanitation(text)
    {
@@ -55,7 +51,7 @@ Parse.PortableGameNotation = function(text)
    }
    function moveTextSanitation(text)
    {
-       text = text.replace(/\[.*?\]/g, '');  //section 5. remove block comments
+       text = text.replace(/\{.*?\}/g, '');  //section 5. remove block comments
        text = text.replace(/\$\d+/g, '');  //section 7. remove Numeric Annotation Glyph (NAG)
        text = text.replace(/\b\d+\.*(?:\.| )/g, '');  //section 7 and 8.2.2. remove move numbers which are optional
        //text = text.replace(/\(.*?\)/g, '');  //section 7. Recursive Annotation Variations (RAV) TODO: are not so easily removed
@@ -77,8 +73,25 @@ Parse.PortableGameNotation = function(text)
        //game termination markers are thrown away. does not support multiple games
        return moveArray;
    }
+   function gameCreation(parser, moveArray)
+   {
+       var game = new Game();
+      for (var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
+      {
+          var didThrow = true;
+         try
+         {
+             game.addBoard(parser(game.getBoard(), moveArray[moveIndex]));
+             didThrow = false;
+         }
+         finally
+         {
+             if(didThrow) console.log('Error occurred on move ' + ((moveIndex / 2) + 1));
+         }
+      }
+       return game;
+   }
 }
-//TODO: add validation to the parsers
 
 Parse.MinimumCoordinateNotationMove = function(board, text)
 {
@@ -107,6 +120,9 @@ Parse.FriendlyCoordinateNotationMove = function(board, text)
        if(text === 'qc') return Parse.MinimumCoordinateNotationMove(board, 'e8c8');
    }
 
+    //TODO: add error for "unexpected piece moved" if the symbol doesn't match
+    //TODO: add error for regex validation
+    //TODO: add warning for capture indicator not matching
     text = text.substring(1);  //remove piece symbol
     text = text.replace(/x./, '');  //remove capture information
     text = text.replace('en', '');  //ditto. I could have called board.performEnPassant() directly but MinimumCoordinateNotationMove will handle that

@@ -90,14 +90,24 @@ function Board(passedTurnIndicator)
     this.switchTurns = function(){isWhitesTurn = !isWhitesTurn;};
    this.move = function(source, destination, promotedTo)
    {
-       //doesn't perform any move validation
+       var pieceMoved = this.getPiece(source);
+
+       //perform some simple move validation
+       if(pieceMoved === '1') this.error('Empty square ' + source + ' can\'t be moved. destination=' + destination);
+       if(isWhitesTurn && (/^[rnbqkp]$/).test(pieceMoved)) this.error('White can\'t move black\'s piece. coordinates: ' + source + destination);
+       if(!isWhitesTurn && (/^[RNBQKP]$/).test(pieceMoved)) this.error('Black can\'t move white\'s piece. coordinates: ' + source + destination);
+       if(pieceMoved.toUpperCase() !== 'P' && promotedTo !== undefined) this.error('Piece ' + pieceMoved + ' can\'t be promoted to ' + promotedTo + '. coordinates: ' + source + destination);
+
+       //done below errors so that the error message will have same case. ok since the error checking doesn't need them
+       source = source.toLowerCase();
+       destination = destination.toLowerCase();
+
        if(this.isKingCastling(source, destination)) this.performKingsCastle();
        else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
-       else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source);
+       else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source, destination);
       else
       {
           enPassantSquare = '-';
-          var pieceMoved = this.getPiece(source);
           capturedPiece = this.getPiece(destination);
 
           this.simpleMove(source, destination);
@@ -132,8 +142,16 @@ function Board(passedTurnIndicator)
       }
       else if (promotedTo !== undefined)
       {
-          if(isWhitesTurn) this.setPiece(destination, promotedTo.toUpperCase());
-          else this.setPiece(destination, promotedTo.toLowerCase());
+         if (isWhitesTurn)
+         {
+             if(destination[1] !== '8') this.error('P' + destination + ' can\'t be promoted to ' + promotedTo + '. source=' + source);
+             this.setPiece(destination, promotedTo.toUpperCase());
+         }
+         else
+         {
+             if(destination[1] !== '1') this.error('p' + destination + ' can\'t be promoted to ' + promotedTo + '. source=' + source);
+             this.setPiece(destination, promotedTo.toLowerCase());
+         }
       }
    };
    this.isEnPassantOccurring = function(source, destination)
@@ -145,22 +163,22 @@ function Board(passedTurnIndicator)
    {
        var symbol = this.getPiece(source);
        //assume that isWhitesTurn matches the color of the king
-       //doesn't perform any other move validation
-       if(symbol === 'K' && destination === 'g1') return white.canKingsCastle;
-       if(symbol === 'k' && destination === 'g8') return black.canKingsCastle;
+       if(symbol === 'K' && (source + destination) === 'e1g1') return white.canKingsCastle;
+       if(symbol === 'k' && (source + destination) === 'e8g8') return black.canKingsCastle;
        return false;
    };
    this.isQueenCastling = function(source, destination)
    {
        var symbol = this.getPiece(source);
        //assume that isWhitesTurn matches the color of the king
-       //doesn't perform any other move validation
-       if(symbol === 'K' && destination === 'c1') return white.canQueensCastle;
-       if(symbol === 'k' && destination === 'c8') return black.canQueensCastle;
+       if(symbol === 'K' && (source + destination) === 'e1c1') return white.canQueensCastle;
+       if(symbol === 'k' && (source + destination) === 'e8c8') return black.canQueensCastle;
        return false;
    };
-   this.performEnPassant = function(source)
+   this.performEnPassant = function(source, destination)
    {
+       //destination is only used for this error message:
+       if(enPassantSquare === '-') this.error('An en passant can\'t be performed. coordinates: ' + source + destination);
        var destination = enPassantSquare;
        enPassantSquare = '-';
        capturedPiece = 'EN';
@@ -178,12 +196,14 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
+          if(!white.canKingsCastle) this.error('White can\'t perform a King\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h1', 'f1');  //moves the rook
           this.simpleMove('e1', 'g1');  //moves the king
       }
       else
       {
+          if(!black.canKingsCastle) this.error('Black can\'t perform a King\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h8', 'f8');  //moves the rook
           this.simpleMove('e8', 'g8');  //moves the king
@@ -195,12 +215,14 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
+          if(!white.canQueensCastle) this.error('White can\'t perform a Queen\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a1', 'd1');  //moves the rook
           this.simpleMove('e1', 'c1');  //moves the king
       }
       else
       {
+          if(!black.canQueensCastle) this.error('Black can\'t perform a Queen\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a8', 'd8');  //moves the rook
           this.simpleMove('e8', 'c8');  //moves the king
@@ -223,5 +245,11 @@ function Board(passedTurnIndicator)
    this.getPieceIndex = function(fileIndex, rankIndex)
    {
        return boardSquares[fileIndex][rankIndex];
+   };
+   this.error = function(message)
+   {
+       var boardString = 'board:\n' + JSON.stringify(boardSquares).replace(/\],/g, '],\n');
+       console.log(boardString);
+       throw new Error(message);
    };
 }
