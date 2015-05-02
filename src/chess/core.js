@@ -104,7 +104,7 @@ function Board(passedTurnIndicator)
 
        if(this.isKingCastling(source, destination)) this.performKingsCastle();
        else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
-       else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source, destination);
+       else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source);
       else
       {
           enPassantSquare = '-';
@@ -175,10 +175,9 @@ function Board(passedTurnIndicator)
        if(symbol === 'k' && (source + destination) === 'e8c8') return black.canQueensCastle;
        return false;
    };
-   this.performEnPassant = function(source, destination)
+   this.performEnPassant = function(source)
    {
-       //destination is only used for this error message:
-       if(enPassantSquare === '-') this.error('An en passant can\'t be performed. coordinates: ' + source + destination);
+       if(enPassantSquare === '-') this.error('An en passant can\'t be performed. source=' + source);
        var destination = enPassantSquare;
        enPassantSquare = '-';
        capturedPiece = 'EN';
