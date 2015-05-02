@@ -81,5 +81,7 @@ Write.GameBoardSquareArray = function(game)
     resultString = resultString.replace(/\],\[/g, '],\r\n       [');
     resultString = resultString.replace(/\]\],/g, ']\r\n   ],');
     resultString = resultString.replace(/       \[\[/g, '   [\r\n       [');
+    resultString = resultString.replace('[[[', '[\r\n   [\r\n       [');
+    resultString = resultString.replace(']]]', ']\r\n   ]\r\n]');
     return resultString;
 }

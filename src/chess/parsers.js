@@ -16,7 +16,7 @@ Parse.PortableGameNotation = function(text)
        if(text[0] === '%') text[0] = ';';  //section 6. the useless token that does the same thing as an already existing one
        text = text.replace(/\{[\s\S]*?\}/g, '');  //section 5. remove block comments
        text = text.replace(/\r\n?/g, '\n');  //section 3.2.2: export uses \n but imports should allow whatever end line
-       text = text.replace(/;.*?\n/g, '');  //section 5. rest of line comment. the only thing that requires end lines
+       text = text.replace(/;.*?\n/g, ' ');  //section 5. rest of line comment. the only thing that requires end lines
        text = text.replace(/;.*$/, '');  //remove the single line comment at the end since it doesn't have an end line
        text = text.replace(/\s+/g, ' ');  //section 7 and others indicate that all other white space is treated the same
        text = text.replace(/\\"|\\/g, '');  //there are no strings that I read in which " or \ could be used. so ignore for easy parsing
@@ -161,13 +161,17 @@ Parse.ShortenedFenRow = function(beforeBoard, text)
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
     text = text.replace(/\s+/g, ' ');
     var sections = text.split(' ');
-    var afterBoard = new Board(!beforeBoard.isWhitesTurn());  //assume the opposite turn if information isn't available
-       //the value is here for readability even though resetState will do the same thing
+    var afterBoard = new Board(beforeBoard.isWhitesTurn());
+       //isWhitesTurn is for who can move next just like FEN's move indicator
+       //if previous board said white was next then assume that I'm moving for white if the information isn't available
 
     Parse.FenBoard(afterBoard, sections[0]);
-    resetState(beforeBoard, afterBoard);
 
-    if(sections.length === 1) return afterBoard;  //state is already defaulted if no information is available
+   if (sections.length === 1)
+   {
+       resetState(beforeBoard, afterBoard);  //default the state if no information is available
+       return afterBoard;
+   }
 
     var newState = {isWhitesTurn: (sections[1].toLowerCase() === 'w')};
 
@@ -180,9 +184,9 @@ Parse.ShortenedFenRow = function(beforeBoard, text)
    }
 
     if(sections[3] !== undefined && (/^[A-H][1-8]$/i).test(sections[3])) newState.enPassantSquare = sections[3].toUpperCase();
-
     //TODO: doesn't detect +#
-    afterBoard.changeState(newState);
+
+    resetState(beforeBoard, afterBoard, newState);
     return afterBoard;
 }
 moveTextRegex[Parse.ShortenedFenRow] = /(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?/;

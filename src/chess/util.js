@@ -73,17 +73,21 @@ function findBoardMove(beforeBoard, afterBoard)
    }
 }
 /**Resets the state of the afterPositions*/
-function resetState(beforeBoard, afterPositions)
+function resetState(beforeBoard, afterPositions, knownState)
 {
     var move = findBoardMove(beforeBoard, afterPositions);  //get move required to go from beforeBoard to afterPositions
     var afterBoard = beforeBoard.copy();  //copy beforeBoard because I need to change it
-    afterBoard.switchTurns();
+    //don't switch turns. isWhitesTurn is for who can move next which I need in order to move
 
     //have the afterBoard do that move
     if(move === 'KC') afterBoard.performKingsCastle();
     else if(move === 'QC') afterBoard.performQueensCastle();
     else if(move.enPassantOccurred) afterBoard.performEnPassant(move.source);
     else afterBoard.move(move.source, move.destination, move.promotedTo);  //promotedTo might be undefined
+
+    if(knownState !== undefined) afterBoard.changeState(knownState);
+    if(knownState === undefined || knownState.isWhitesTurn === undefined) afterBoard.switchTurns();
+       //if no turn information is available then assume the turn switches
 
     //now afterBoard has the same positions as afterPositions
     //but because the movement functions were used the state will be correct
