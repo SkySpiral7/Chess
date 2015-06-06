@@ -59,7 +59,7 @@ function findBoardMove(beforeBoard, afterBoard)
 
        return {source: source, destination: destination, enPassantOccurred: true};
    }
-   else  //length is 2
+   else if (differences.length === 2)  //every other move
    {
        var source = differences[0], destination = differences[1];  //guess the order
        if(afterBoard.getPiece(destination) === '1'){source = destination; destination = differences[0];}  //correct if wrong
@@ -71,6 +71,10 @@ function findBoardMove(beforeBoard, afterBoard)
       }
        return {source: source, destination: destination};
    }
+    //else
+    console.log('Before:\n' + beforeBoard.toString() + '\n\n' +
+                'After:\n' + afterBoard.toString());
+    throw new Error('There is no single move that can cause this change in boards.');
 }
 /**Resets the state of the afterPositions*/
 function resetState(beforeBoard, afterPositions, knownState)

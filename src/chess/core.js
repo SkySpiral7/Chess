@@ -247,8 +247,12 @@ function Board(passedTurnIndicator)
    };
    this.error = function(message)
    {
-       var boardString = 'board:\n' + JSON.stringify(boardSquares).replace(/\],/g, '],\n');
+       var boardString = 'board:\n' + this.toString();
        console.log(boardString);
        throw new Error(message);
+   };
+   this.toString = function()
+   {
+       return JSON.stringify(boardSquares).replace(/\],/g, '],\n');
    };
 }

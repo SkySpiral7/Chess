@@ -1,5 +1,5 @@
-/**The string returned has piece locations and the information that follows.*/
 var Write = {};
+/**The string returned has piece locations and the information that follows.*/
 Write.FenRow = function(board, fullMoveCount)
 {
     var state = board.getState();
@@ -70,6 +70,7 @@ Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
     return result.toUpperCase();
 }
 
+/**The string returned is pasted into a shell html file to preserve a chess game.*/
 Write.GameBoardSquareArray = function(game)
 {
     var resultArray = [];

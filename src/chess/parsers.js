@@ -1,6 +1,10 @@
+var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
+
 var Parse = {};
+//TODO: use VGN instead of PGN
 Parse.PortableGameNotation = function(text)
 {
+    //VGN definition: http://skyspiral7.blogspot.com/2015/05/vgn-variable-game-notation.html
     //PGN original definition: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
     text = gameSanitation(text);
     var tagReturnValue = tagSection(text);
@@ -14,8 +18,8 @@ Parse.PortableGameNotation = function(text)
    {
        text = text.trim();
        if(text[0] === '%') text[0] = ';';  //section 6. the useless token that does the same thing as an already existing one
-       text = text.replace(/\{[\s\S]*?\}/g, '');  //section 5. remove block comments
        text = text.replace(/\r\n?/g, '\n');  //section 3.2.2: export uses \n but imports should allow whatever end line
+       text = text.replace(/\{[\s\S]*?\}/g, '');  //section 5. remove block comments
        text = text.replace(/;.*?\n/g, ' ');  //section 5. rest of line comment. the only thing that requires end lines
        text = text.replace(/;.*$/, '');  //remove the single line comment at the end since it doesn't have an end line
        text = text.replace(/\s+/g, ' ');  //section 7 and others indicate that all other white space is treated the same
@@ -75,8 +79,13 @@ Parse.PortableGameNotation = function(text)
           text = text.replace(moveRegEx, '').trim();  //remove the move text I just read
           moveText = moveRegEx.exec(text);
       }
-       //game termination markers are thrown away. does not support multiple games
-      if (!(/^(?:\*|1-0|0-1|1\/2-1\/2|)$/).test(text))  //note the final |. text is allowed to be an empty string
+       //game termination markers are thrown away but required. does not support multiple games
+      if (text === '')
+      {
+          console.log('Error occurred after move ' + ((moveArray.length / 2) + 1));
+          throw new SyntaxError('Game termination marker missing.');
+      }
+      if (!(/^(?:\*|1-0|0-1|1\/2-1\/2)$/).test(text))
       {
           console.log('Error occurred on move ' + ((moveArray.length / 2) + 1));
           throw new SyntaxError('Regex: ' + formatRegex + ' doesn\'t match input starting with ' + text);
@@ -116,7 +125,7 @@ moveTextRegex[Parse.MinimumCoordinateNotationMove] = /[A-H][1-8][A-H][1-8][QBNR]
 
 Parse.FriendlyCoordinateNotationMove = function(board, text)
 {
-    //eg: Ra1-a8xQ, Pa7-B8xR=q or Pa7-A8=N, Pa5-b6en, KC, QC, Ra1-a8+#
+    //eg: Ra1-a8xQ, Pa7-B8xR=q+#+, Pa7-A8=N, Pa5-b6en+#, KC#, Ra1-a8##
     board = board.copy();
     text = text.toUpperCase();
     if((/^KC\+?#?$/).test(text)){board.performKingsCastle(); board.switchTurns(); return board;}
@@ -155,21 +164,27 @@ Parse.FriendlyCoordinateNotationMove = function(board, text)
 }
 moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?#?/i;
 
+//TODO: update regex
+// /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?(?:#[+#]?)?$/i
+
 /**This parses the piece locations and the information that follows.*/
 Parse.ShortenedFenRow = function(beforeBoard, text)
 {
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
     text = text.replace(/\s+/g, ' ');
     var sections = text.split(' ');
-    var afterBoard = new Board(beforeBoard.isWhitesTurn());
+    var afterBoard;
+    var hasBeforeBoard = (beforeBoard !== undefined && beforeBoard !== null);
+    if(hasBeforeBoard) afterBoard = new Board(beforeBoard.isWhitesTurn());
        //isWhitesTurn is for who can move next just like FEN's move indicator
        //if previous board said white was next then assume that I'm moving for white if the information isn't available
+    else afterBoard = new Board(true);
 
     Parse.FenBoard(afterBoard, sections[0]);
 
    if (sections.length === 1)
    {
-       resetState(beforeBoard, afterBoard);  //default the state if no information is available
+       if(hasBeforeBoard) resetState(beforeBoard, afterBoard);  //default the state if no information is available
        return afterBoard;
    }
 
@@ -186,10 +201,13 @@ Parse.ShortenedFenRow = function(beforeBoard, text)
     if(sections[3] !== undefined && (/^[A-H][1-8]$/i).test(sections[3])) newState.enPassantSquare = sections[3].toUpperCase();
     //TODO: doesn't detect +#
 
-    resetState(beforeBoard, afterBoard, newState);
+    if(hasBeforeBoard) resetState(beforeBoard, afterBoard, newState);
     return afterBoard;
 }
 moveTextRegex[Parse.ShortenedFenRow] = /(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?/;
+
+//TODO: update regex
+// /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|K?Q?k?q?)(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;
 
 /**This only parses the piece locations.*/
 Parse.FenBoard = function(board, text)
