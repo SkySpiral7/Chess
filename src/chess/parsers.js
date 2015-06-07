@@ -1,62 +1,38 @@
+//TODO: move into chess repo
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
 
 var Parse = {};
-//TODO: use VGN instead of PGN
-Parse.PortableGameNotation = function(text)
+Parse.VariableGameNotation = function(text)
 {
     //VGN definition: http://skyspiral7.blogspot.com/2015/05/vgn-variable-game-notation.html
     //PGN original definition: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
-    text = gameSanitation(text);
-    var tagReturnValue = tagSection(text);
-    text = tagReturnValue.text;
-    var parser = findParser(tagReturnValue.format);
+    var tagReturnValue = Parse.VariableGameNotationTagSection(text);
+    //TODO: SetUp tag not yet supported
+    text = tagReturnValue.moveTextSection;
+    var parser = findParser(tagReturnValue.allTags.MoveFormat);
     text = moveTextSanitation(text);
     var moveArray = moveTextSection(text, moveTextRegex[parser]);  //although text is modified it doesn't need to be returned because it isn't used again
     return gameCreation(parser, moveArray);
 
-   function gameSanitation(text)
+   function findParser(formatFullString)
    {
-       text = text.trim();
-       if(text[0] === '%') text[0] = ';';  //section 6. the useless token that does the same thing as an already existing one
+       var format = formatFullString.replace(/:.*$/, '').toUpperCase();  //remove the first : and everything after it
+       if(format === 'MCN') return Parse.MinimumCoordinateNotationMove;
+       else if(format === 'FCN') return Parse.FriendlyCoordinateNotationMove;
+       else if(format === 'SFEN') return Parse.ShortenedFenRow;
+       else throw new Error('MoveFormat ' + formatFullString +' is not supported.');
+       //TODO: I currently don't have parsers for any binary format
+   }
+   //TODO: replace the move text section parsing with a finite state machine as well
+      //an example reason is that comments are not handled correct if nested. also RAV
+   function moveTextSanitation(text)
+   {
+       //all section comments are per PGN doc
        text = text.replace(/\r\n?/g, '\n');  //section 3.2.2: export uses \n but imports should allow whatever end line
-       text = text.replace(/\{[\s\S]*?\}/g, '');  //section 5. remove block comments
        text = text.replace(/;.*?\n/g, ' ');  //section 5. rest of line comment. the only thing that requires end lines
        text = text.replace(/;.*$/, '');  //remove the single line comment at the end since it doesn't have an end line
        text = text.replace(/\s+/g, ' ');  //section 7 and others indicate that all other white space is treated the same
-       text = text.replace(/\\"|\\/g, '');  //there are no strings that I read in which " or \ could be used. so ignore for easy parsing
-       return text;
-       //TODO: gameSanitation technically corrupts the move text section
-       //TODO: comments are not handled correctly as I do not check to see if {}; is in a string, move text, or comment etc
-   }
-   function tagSection(text)
-   {
-       var setUp, format = 'san';  //default is for compatibility
-       var tagRegEx = /^ ?\[ ?(\w+) "([^"]*)" ?\]/;
-       var tag = tagRegEx.exec(text);
-      while (tag !== null)
-      {
-          var name = tag[1].toLowerCase();
-          var value = tag[2].toLowerCase();
-
-          if(name === 'format') format = value;
-          //if(name === 'setup')  //TODO: SetUp tag not yet supported
-
-          text = text.replace(tagRegEx, '');  //remove the tag I just read
-          tag = tagRegEx.exec(text);
-      }
-       return {format: format, setUp: setUp, text: text};
-   }
-   function findParser(format)
-   {
-       format = format.replace(/:.*$/, '');  //remove the first : and everything after it
-       if(format === 'mcn') return Parse.MinimumCoordinateNotationMove;
-       else if(format === 'fcn') return Parse.FriendlyCoordinateNotationMove;
-       else if(format === 'sfen') return Parse.ShortenedFenRow;
-       else throw new Error('Move text format '+format.toUpperCase() +' is not supported.');
-       //TODO: doesn't support binary format
-   }
-   function moveTextSanitation(text)
-   {
+       text = text.replace(/\{.*?\}/g, '');  //section 5. remove block comments
        text = text.replace(/\$\d+/g, '');  //section 7. remove Numeric Annotation Glyph (NAG)
        //text = text.replace(/\(.*?\)/g, '');  //section 7. Recursive Annotation Variations (RAV) TODO: are not so easily removed
        return text;
@@ -110,6 +86,88 @@ Parse.PortableGameNotation = function(text)
       }
        return game;
    }
+}
+
+Parse.VariableGameNotationTagSection = function(text)
+{
+    //state indicators:
+    var inBlockComment = false;
+    var inLineComment = false;
+    var inTag = false;
+    var inTagString = false;
+
+    /**index/cursor/position*/
+    var i = 0;
+
+    //used for output:
+    var isBinary = false;
+    var allTags = {GameFormat: 'PGN', MoveFormat: 'SAN'};  //defaults
+
+    //string aggregators used by allTags:
+    var tagName = '';
+    var tagString = '';
+
+    if(text[0] === '%') text[0] = ';';  //PGN section 6. the useless token that does the same thing as an already existing one
+       //even though VGN doesn't allow this, it is easier to allow it then it is to throw
+   for (; i < text.length; ++i)
+   {
+      if (inLineComment)
+      {
+          if(text[i] === '\r' || text[i] === '\n') inLineComment = false;
+             //obviously functional for old Mac and Unix end lines
+             //also includes Windows \r\n because \r ends it and \n is ignored as whiteSpace
+          continue;
+      }
+      if (inBlockComment)
+      {
+          if(text[i] === '}') inBlockComment = false;
+          continue;
+      }
+      if (inTagString)
+      {
+          if(text[i] === '"' && text[i-1] !== '\\') inTagString = false;
+          else tagString += text[i];
+          continue;
+      }
+      if (inTag)
+      {
+          if(text[i] === '"' && tagString !== '') throw new SyntaxError('A tag can\'t contain more than 1 string:\n' + text.substring(0, (i+1)));
+          if(text[i] === '[') throw new SyntaxError('A tag can\'t contain a tag:\n' + text.substring(0, (i+1)));
+          if(text[i] === '"'){inTagString = true; continue;}
+         if (text[i] === ']')
+         {
+             tagName = tagName.trim();
+             allTags[tagName] = tagString;  //save string as-is.
+             tagString = tagString.trim().replace(/:.*$/, '').toUpperCase();  //remove the first : and everything after it
+            if (tagName === 'MoveFormat' && binaryFormats.indexOf(tagString) !== -1)
+            {
+                isBinary = true;
+                //if is binary format then tagSection is over
+                //anything that follows (whiteSpace, []{};, etc) are binary values for the move text section
+                ++i;  //move i to the first index of the move text section
+                break;
+            }
+             inTag = false;
+             tagName = tagString = '';
+             continue;
+         }
+          //PGN allows either comment to exist anywhere in a tag
+          //this finite state machine can read both PGN and VGN which is why it allows comments here
+          //so even though VGN doesn't allow comments inside tags, it is easier to allow it then to throw
+          if(text[i] === ';') inLineComment = true;
+          else if(text[i] === '{') inBlockComment = true;
+          else tagName += text[i];
+          continue;
+      }
+       if(text[i] === ';') inLineComment = true;
+       else if(text[i] === '{') inBlockComment = true;
+       else if(text[i] === '[') inTag = true;
+       else if(text[i].trim() === ''){}  //ignore whiteSpace
+       //anything else would be the first character of the move text section
+       else break;
+   }
+    if(!(/^VGN(?::.*?)?$/i).test(allTags.GameFormat)) throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
+    return {allTags: allTags, moveTextSection: text.substr(i), isBinary: isBinary};
 }
 
 var moveTextRegex = {};
