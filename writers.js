@@ -70,7 +70,6 @@ Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
     return result.toUpperCase();
 }
 
-/**The string returned is pasted into a shell html file to preserve a chess game.*/
 Write.GameBoardSquareArray = function(game)
 {
     var resultArray = [];
@@ -78,7 +77,13 @@ Write.GameBoardSquareArray = function(game)
    {
        resultArray.push(game.getBoard(i).getBoardSquares());
    }
-    var resultString = JSON.stringify(resultArray).replace(/"/g, '\'');
+    return resultArray;
+}
+
+/**The string returned is pasted into a shell html file to preserve a chess game.*/
+Write.FormatGameBoardSquareArrayAsString = function(squareArray)
+{
+    var resultString = JSON.stringify(squareArray).replace(/"/g, '\'');
     resultString = resultString.replace(/\],\[/g, '],\r\n       [');
     resultString = resultString.replace(/\]\],/g, ']\r\n   ],');
     resultString = resultString.replace(/       \[\[/g, '   [\r\n       [');

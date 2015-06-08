@@ -1,0 +1,26 @@
+<html>
+<title>Shell Tester</title>
+<script>
+function main()
+{
+var output = document.getElementById("output");
+output.value = 'An error occurred.';  //will be overwritten if doesn't throw
+output.value = eval('(function(){'+document.getElementById("inputCode").value+'})();');
+//doesn't catch so that the stack trace is unchanged
+};
+</script>
+<script src="core.js"></script>
+<script src="parsers.js"></script>
+<script src="util.js"></script>
+<script src="writers.js"></script>
+<a>Code:</a><br />
+<textarea id="inputCode" rows="10" cols="120">var gameText = '';
+gameText += '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 *';
+
+return Write.GameBoardSquareArray(Parse.VariableGameNotation(gameText));
+</textarea><br />
+<input type="button" onClick="main();" value="Execute" /><br /><br />
+<a>Return Value:</a><br />
+<textarea id="output" rows="25" cols="50"></textarea><br />
+<br /><br /><br /><br />
+</html>

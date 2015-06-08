@@ -1,0 +1,231 @@
+<html>
+<head>
+<title>Temp saved chess game</title>
+<style>
+.edge{background-color: #6C0000; font-family: MS Sans Serif; font-size: small; color: #FFFF00;}
+.edge>td{height: 20;}
+td.edge{width: 20;}
+tr{text-align: center;}
+.white{background-color: #F8E1B8;}
+.black{background-color: #AE823E;}
+.white>img,.black>img{width: 50; height: 50;}
+</style>
+<script>
+var game = [
+   [
+       ['R','P','1','1','1','1','p','r'],
+       ['N','P','1','1','1','1','p','n'],
+       ['B','P','1','1','1','1','p','b'],
+       ['Q','P','1','1','1','1','p','q'],
+       ['K','P','1','1','1','1','p','k'],
+       ['B','P','1','1','1','1','p','b'],
+       ['N','P','1','1','1','1','p','n'],
+       ['R','P','1','1','1','1','p','r']
+   ]
+];
+var pieceImages = {
+    '1': 'R0lGODlhAQABAPAAAAAAAAAAACH5BAUAAAAALAAAAAABAAEAAAICRAEAOw==',
+    'B': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AP///wAAAAAAAALVnI+py+0PD5E5H1N3hGLRfExdCUpE8zF1R0jifExdE4o4H1NXhGIJzcdUFIofQvMx1YTin9B8TBWKLWdC8zFTKLacCc3HRKH4cic0H/MkghLKjogQmo95QvHlTmg+5gnFlzuh+ZgnFB9PaD4mCsXHEJqPmULxMYTmYyrJR6H5mDpC8U9oPqZKkPwLofmYKULxT4TmY6ZQfAyh+ZhK8lFoPqaiCEWi+ZhH8pFik3yk+SMUH00yjcT5QvFRZEQoPgrNH5KPNJvkI803QUTEI+J8TF1uf0QKADs=',
+    'b': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AAAAAP///wAAAALFnI+py+0PD4k5H1N3KDbNx9Sl2DQfU3eCEs7H1LWghPMxdSl+0HxMRYp/NB9TjeJj0HxMpfhyR/Mxk+LLHc3HRIofgkfzMS8iKJQvERE0H/Mofggezcc8ih+CR/Mxj+Jj0nxMpPh4NB8zKT4ezcfUIPkXNB9Th+Jj0HxMjQgKZUdE0HzMDBGSEiEiQuF8zKT4eDQfUyk+Bs3HVKTYNB/zKD6mIs0fio+pSvMpPt5kHs0fio80m+IjzbdARMQj4XxMXW5/RAoAOw==',
+    'K': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AP///wAAAAAAAALonI+py+0PERHnY+qi0HxMXSPZNB9T14TmY+qi0HxMXRSaj6l7QhLnY+qOUCyaj6kqFFtoPiaS7Bmh2DJDsmk+jlBsETkTkhhbaP4JxTfBEEQS549QfJQTRCNxvlB8FAkRio9C84XiY0hIZhBxvlB8DBHJDCLOF4qPJplG4vwRio8hmUHi/BOKT/KP4gvNx5EQIYnxT0QkSJyPJxQf04TmIwrFxzSh+YgSESQfJSKE5iOKiFB8DBERmo8oEUGh/IuIEJqPKCFCYvwTkRCajyhC8TFFaD6miFB8DBGh+ZhI8lFoPqYut/8jBQA7',
+    'k': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AAAAAP///wAAAALvnI+py+0PEQnnY+pi0HxMXaPYNB9T14LmY+pi0HxMXQyaj6l7QQnnY+pOkByaj6kaQrGC5mMixZ4JOaFsFJvm4wTJjgiJoCgRJDto/oVQbJGQE4pEsSVo/oRQfJOQEIoY3yRofgjFPwkJofgnQfNDKP5JSAjFPwmaH0LxUUIQjRTOnxCKfxKCGKSE5k+EUHyTEERSQvMvQiIoofyLiBBKOB8nQoQkxj8REaP5eBQfE2k+IsXHRJqPGUHy8SKC5mOGCMXHEDGajxkRQfKPYtN8zBARin8iYjQfk+JjHs3HHIqPGTQfMyk+0nxMXW7/RwoAOw==',
+    'N': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AP///wAAAAAAAALxnI+py+0PozxE2ozRfExNCdIUITQfU1GCIkWICM3HVJMgOSERRvMxVUIo/onQfMwTio8nQvMxTUJIjI8hQvMxJYTiI4rQfEQJofgmGCI0H08oPoZkCInz0YTiY0iGkDgfRyg+mqQJifNRKD6G5AmJ808oPooIIkmcf0LxT2YEMYjE+SMhFF9kZoTinwjNHwmh2DIzIxQfRWj+SEQIJaLZQvFRhOaPRIRQxNlC8dGE5hvJptlC8fFEaD7mCMVHFKH5mELxMUVoPqJQfMwQofmIQvExQ4Tm4wnFxzQRmo8nFB/TRGg+HsnHTJqPqcvtD+MjBQA7',
+    'n': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AAAAAP///wAAAALknI+py+0Po2wknI+pGUFzguZjakZQtoig+ZiKFB9pPqZaBEWKCJGgcD6mRgjFDxGj+ZhH8fHEaD6mRQiJ8VGM5mNGCMXHE6P5iBFC8fFEgubjUXzME6P5aBQf80SC5uNQfDRJE0o4Hyk+ZooEzT+Kj6kiQfOP4mPMJJISmj8RQvFjZgYxiBSaPxFC8Wdm7i6IFJo/FN9oNsVHkaD5Q/GDZlN8NAmabxSbZlN8PDGajzkUH1EkaD4mxccUCZqPSPExQyRoPiLFxwyRoPl4FB/TRILm41F8zKT5eBQfM2k+pi63/yEFADs=',
+    'P': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AP///wAAAAAAAAK5nI+py+0Po5z0EZnzMXVHKBbNx1QVii00H1NTKLbQfExNodhC8zFVJSgRzcdUFYotNB9TUSh+CM3HVBOKf0LzMXWE4p/QfEwdofgnNB9TRyj+Cc3H1BGKf0LzMdWE4ofQfEw9EYotQvMx1YTin9B8TBWKjyE0HxOF4uMJzcc8ofh4QvMxTSg+ptB8zBGKjyk0H1MoPqYJzUcUio9pQvMRheJjmtB8RKH4mCY0H5HkYyLNx9Tl9odRDlIAOw==',
+    'p': 'R0lGODlhIQAhABEAACH5BAEAAAIALAAAAAAhACEAgQD/AAAAAAAAAAAAAAKnlI+py+0Po5z0kZjyMXWFYpN8TFWKHyQfU5PiB8nH1KT4QfIxVSk2ycdUpfhG8jH1KD6SfEwVio9B8jFVKD4GycdUofgYJB9TheJjkHxMFYqPQfIx1Sj+kXxMPYp/JB9TjeJjkHxMpfh4JB8TKT4mycc8io9J8jGN4mMayccUio9pJB+T4mMiyUek+JhI8hEpPiaSfESKj4kkH5HiYyLJx9Tl9odRClIAOw==',
+    'Q': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AAAAAP///wAAAAL/nI+py+0PEQnnY+pekML5mGoRNDskzoLC+ZghEjQ7zkKEwvkXcRGkcHachQRlm4iZoUgxMxM0P+7ihiLFTIhQtpmg2SFxFjQvROKCwtkRNyGUbSaCZkecRdC8iJsQyjYTMUNbguZH3IRQtgmJGVoUMzNB4fyJuBDKFiISQ4tiZiJovoWEBSmbEJGgLRIWEjTfQsKCpEyYxFCkmAkJmm8hEkORYkJEKItITAgpnG8hEkORIkh2hMUESaH5FyIRpIjih4SYkML5GBISFCVIfkiEBCmcjxESQfIRQyJoPgbJx9Sg+TghIhQfT0SC5qNFRJB8vIgImo8XJB/TguYjhgjFOccTCZqPGUHy8SJoPmaIUHw8kaD5eBERJB8vIoLmowXJx8Sg+WgRESQfLyKC5mMOxcej+Zi63P6OFAA7',
+    'q': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AAAAAP///wAAAAL/nI+py+0PD4k5H1N3KDbNx9SJoHkUe2bGaD5mRATNi4iboCQ0/yIughLOjrOIoGwTMTMUZ2aMZkfEWVC2iYgYWhIxM0Ph7Ig4C5oXEXFB4eyImwjKNhNBsyPOImhexE0EZZuJmKEtQfMjbiIo20TEDC2JmZmgcP5EXARlo9gzNzOUcL5FhAUlG4o9czNH8y0iLCjJUOy5mDmabxERQ3HmbC5oSQTNt4iIofiYgzT/KD6mGs1Hio+pRvOR4mOq0Xyk+JhqNB8nIoLk40VE0Hy0CBGKjydiNB+P4mMizUeMCJKPFxE0HzNEKD6GSNB8TIqPiTQfk+JjHs3Ho/iYSvPRESg+ptJ8zKH4eDQfU5fb35ECADs=',
+    'R': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AP///wAAAAAAAALDnI+py+0Po5zUENkzcza0UTbNR5OIIG0jESE0KyLEzMwYoiRIdkScBSWi+WhC8TFRaD4aycdUmo8nFB/ThOZjknxMo/mYJhQfT2g+5gnFxxOaj3lC8fGE5mOeUHw8ofmYJxQfT2g+5gnFxxOaj3lC8fGE5mOeUHw8ofmYJxQfT2g+5gnFxxOaj3kkH5PmY5pQfEyh+ZgkHxNpPqJQfEwTmo8oFB/ThOajkXxMNZqPQvExVWg+knxMNZqPqcvtD6OcdJACADs=',
+    'r': 'R0lGODlhIQAhABEAACH5BAEAAAMALAAAAAAhACEAgQD/AAAAAP///wAAAAKznI+py+0Po5zUkNgzcza0MTbNR6PYM3M2tDE2zUej+JhK89EoPqbSfLQIko9pETQfj+JjIs3HjCD5eBE0H9MoPibNxzyKj0nzMY/iY9J8zKP4mDQf8yg+Js3HPIqPSfMxj+Jj0nzMo/iYNB/zKD4mzcc8io9J8zEvSD5e0HxMo/iYRvMxg+RjWtB8RIqPiTQfkeJjIs1HiwiSj2kRQfOR4mOq0Xyk+JhqNB9Tl9sfRjnpIAUAOw=='
+};
+var moveIndex = 0;
+function loadBoard()
+{
+    var board = game[moveIndex];
+   for (var fileIndex = 0; fileIndex < board.length; fileIndex++)
+   {
+      for (var rankIndex = 0; rankIndex < board[fileIndex].length; rankIndex++)
+      {
+          document.getElementById(''+fileIndex+rankIndex).src = 'data:image/gif;base64,'+pieceImages[board[fileIndex][rankIndex]];
+      }
+   }
+    document.getElementById('moveCount').innerHTML = 'Half Moves: ' + moveIndex;
+}
+function first(){moveIndex = 0; loadBoard();}
+function previous()
+{
+    moveIndex--;
+    if(moveIndex < 0) moveIndex = 0;
+    loadBoard();
+}
+function next()
+{
+    moveIndex++;
+    if(moveIndex === game.length) moveIndex = game.length - 1;
+    loadBoard();
+}
+function last(){moveIndex = game.length - 1; loadBoard();}
+function jump()
+{
+    moveIndex = Number.parseInt(document.getElementById('jumpBox').value);
+    if(Number.isNaN(moveIndex) || moveIndex < 0) moveIndex = 0;
+    else if(moveIndex >= game.length) moveIndex = game.length - 1;
+    document.getElementById('jumpBox').value = moveIndex;
+    loadBoard();
+}
+function readInput()
+{
+    var gameText = document.getElementById('inputText').value;
+    var output = document.getElementById('CurrentGameText');
+    output.innerHTML = 'An error occurred.';  //will be overwritten if doesn't throw
+    game = [];
+    moveIndex = 0;
+    game = Write.GameBoardSquareArray(Parse.VariableGameNotation(gameText));
+    output.innerHTML = gameText;
+    loadBoard();
+}
+</script>
+<script src="core.js"></script>
+<script src="parsers.js"></script>
+<script src="util.js"></script>
+<script src="writers.js"></script>
+</head>
+<body>
+<br />
+<table style="border-width: 0px;">
+<tr><td><table border="1"><tr><td>
+   <table style="border-width: 0px; border-spacing: 0px;">
+         <tr class="edge">
+            <td></td><td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td><td>G</td><td>H</td><td></td>
+         </tr>
+         <tr>
+            <td class="edge">8</td>
+            <td class="white"><img id="07" /></td>
+            <td class="black"><img id="17" /></td>
+            <td class="white"><img id="27" /></td>
+            <td class="black"><img id="37" /></td>
+            <td class="white"><img id="47" /></td>
+            <td class="black"><img id="57" /></td>
+            <td class="white"><img id="67" /></td>
+            <td class="black"><img id="77" /></td>
+            <td class="edge">8</td>
+         </tr>
+         <tr>
+            <td class="edge">7</td>
+            <td class="black"><img id="06" /></td>
+            <td class="white"><img id="16" /></td>
+            <td class="black"><img id="26" /></td>
+            <td class="white"><img id="36" /></td>
+            <td class="black"><img id="46" /></td>
+            <td class="white"><img id="56" /></td>
+            <td class="black"><img id="66" /></td>
+            <td class="white"><img id="76" /></td>
+            <td class="edge">7</td>
+         </tr>
+         <tr>
+            <td class="edge">6</td>
+            <td class="white"><img id="05" /></td>
+            <td class="black"><img id="15" /></td>
+            <td class="white"><img id="25" /></td>
+            <td class="black"><img id="35" /></td>
+            <td class="white"><img id="45" /></td>
+            <td class="black"><img id="55" /></td>
+            <td class="white"><img id="65" /></td>
+            <td class="black"><img id="75" /></td>
+            <td class="edge">6</td>
+         </tr>
+         <tr>
+            <td class="edge">5</td>
+            <td class="black"><img id="04" /></td>
+            <td class="white"><img id="14" /></td>
+            <td class="black"><img id="24" /></td>
+            <td class="white"><img id="34" /></td>
+            <td class="black"><img id="44" /></td>
+            <td class="white"><img id="54" /></td>
+            <td class="black"><img id="64" /></td>
+            <td class="white"><img id="74" /></td>
+            <td class="edge">5</td>
+         </tr>
+         <tr>
+            <td class="edge">4</td>
+            <td class="white"><img id="03" /></td>
+            <td class="black"><img id="13" /></td>
+            <td class="white"><img id="23" /></td>
+            <td class="black"><img id="33" /></td>
+            <td class="white"><img id="43" /></td>
+            <td class="black"><img id="53" /></td>
+            <td class="white"><img id="63" /></td>
+            <td class="black"><img id="73" /></td>
+            <td class="edge">4</td>
+         </tr>
+         <tr>
+            <td class="edge">3</td>
+            <td class="black"><img id="02" /></td>
+            <td class="white"><img id="12" /></td>
+            <td class="black"><img id="22" /></td>
+            <td class="white"><img id="32" /></td>
+            <td class="black"><img id="42" /></td>
+            <td class="white"><img id="52" /></td>
+            <td class="black"><img id="62" /></td>
+            <td class="white"><img id="72" /></td>
+            <td class="edge">3</td>
+         </tr>
+         <tr>
+            <td class="edge">2</td>
+            <td class="white"><img id="01" /></td>
+            <td class="black"><img id="11" /></td>
+            <td class="white"><img id="21" /></td>
+            <td class="black"><img id="31" /></td>
+            <td class="white"><img id="41" /></td>
+            <td class="black"><img id="51" /></td>
+            <td class="white"><img id="61" /></td>
+            <td class="black"><img id="71" /></td>
+            <td class="edge">2</td>
+         </tr>
+         <tr>
+            <td class="edge">1</td>
+            <td class="black"><img id="00" /></td>
+            <td class="white"><img id="10" /></td>
+            <td class="black"><img id="20" /></td>
+            <td class="white"><img id="30" /></td>
+            <td class="black"><img id="40" /></td>
+            <td class="white"><img id="50" /></td>
+            <td class="black"><img id="60" /></td>
+            <td class="white"><img id="70" /></td>
+            <td class="edge">1</td>
+         </tr>
+         <tr class="edge">
+            <td></td><td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td><td>G</td><td>H</td><td></td>
+         </tr>
+   </table>
+</td></tr></table></td></tr>
+<tr><td>
+   <input type="button" value=" |< First " onclick="javascript:first();" />
+   <input type="button" value=" << Previous " onclick="javascript:previous();" />
+   <span id="moveCount">Half Moves: 0</span>
+   <input type="button" value=" Next >> " onclick="javascript:next();" />
+   <input type="button" value=" Last >| " onclick="javascript:last();" />
+   <br /><br />
+   <form action="javascript:void(0);">
+      <input type="submit" value="Jump to half move:" onclick="javascript:jump();" />
+      <input type="text" value="0" size="5" id="jumpBox" autocomplete="off" />
+   </form>
+</td></tr>
+</table>
+<br /><br />
+<textarea id="inputText" rows="10" cols="120">[GameFormat "VGN"]
+[MoveFormat "MCN"]
+1. a2a3
+*
+</textarea><br />
+<input type="button" onClick="readInput();" value="Parse" /><br /><br />
+
+<h3>Game currently loaded</h3>
+<pre id="CurrentGameText">
+</pre>
+
+<script>loadBoard();</script>
+
+<br /><br /><br />
+</body>
+</html>
