@@ -1,4 +1,3 @@
-//TODO: move into chess repo
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
 
 var Parse = {};
