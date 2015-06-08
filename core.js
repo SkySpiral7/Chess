@@ -184,8 +184,8 @@ function Board(passedTurnIndicator)
        this.simpleMove(source, destination);
 
        var deadPawnSquare;
-       if(isWhitesTurn) deadPawnSquare = destination[0] + '4';
-       else deadPawnSquare = destination[0] + '5';
+       if(isWhitesTurn) deadPawnSquare = destination[0] + '5';
+       else deadPawnSquare = destination[0] + '4';
 
        this.setPiece(deadPawnSquare, '1');
    };

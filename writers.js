@@ -53,6 +53,16 @@ Write.FenBoard = function(board)
     return result;
 }
 
+Write.FriendlyCoordinateNotationGame = function(game)
+{
+    var gameText = '[GameFormat "VGN"][MoveFormat "FCN"]';
+    //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
+   for (var i=1; i < game.getBoardArray().length; i++)
+   {
+       gameText += Write.FriendlyCoordinateNotationMove(game.getBoard(i-1), game.getBoard(i)) + ' ';
+   }
+    return gameText + '*';
+}
 Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
 {
     var move = findBoardMove(beforeBoard, afterBoard);
