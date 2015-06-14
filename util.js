@@ -71,10 +71,11 @@ function findBoardMove(beforeBoard, afterBoard)
       }
        return {source: source, destination: destination};
    }
-    //else
+    else if(differences.length === 0) beforeBoard.error('Boards match.');  //This is an error because there is no move between them
+    //else:
     console.log('Before:\n' + beforeBoard.toString() + '\n\n' +
                 'After:\n' + afterBoard.toString());
-    throw new Error('There is no single move that can cause this change in boards.');
+    throw new Error('Requires multiple moves.');
 }
 /**Resets the state of the afterPositions*/
 function resetState(beforeBoard, afterPositions, knownState)

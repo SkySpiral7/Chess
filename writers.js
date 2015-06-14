@@ -14,6 +14,7 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
     if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
     else if(moveFormat === 'MCN') writer = Write.MinimumCoordinateNotationMove;
     else if(moveFormat === 'FEN') writer = Write.FenRow;
+    else if(moveFormat === 'BCCF') writer = Write.BinaryCompressedCoordinateFormatMove;
     else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
 
     var isBinary = (binaryFormats.indexOf(moveFormat) !== -1);
@@ -24,7 +25,17 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
        if(isBinary && tag === 'MoveFormat') continue;  //MoveFormat must be last for binary so add it after all other tags
        gameText += '[' + tag + ' "' + allTags[tag].replace(/"/g, '\\"') + '"]\r\n';
    }
-    if(isBinary) gameText += '[MoveFormat "' + allTags.MoveFormat.replace(/"/g, '\\"') + '"]';  //can't have an end line after it
+   if (isBinary)
+   {
+       gameText += '[MoveFormat "' + allTags.MoveFormat.replace(/"/g, '\\"') + '"]';  //can't have an end line after it
+      for (var i=1; i < game.getBoardArray().length; i++)
+      {
+          gameText += writer(game, i);  //white's move
+          i++;
+          if(i < game.getBoardArray().length) gameText += writer(game, i);  //black's move
+      }
+       return writer(game, i, gameTerminator, gameText);  //each binary writer handles game termination differently
+   }
 
     //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
        //although this function does allow you to pass in the SetUp tag, that isn't how it should be
@@ -127,6 +138,61 @@ Write.MinimumCoordinateNotationMove = function(game, index)
     var result = move.source + move.destination;
     if(move.promotedTo !== undefined) result += move.promotedTo;
     return result.toUpperCase();
+}
+
+Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminator, gameText)
+{
+    //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver
+    if(gameTerminator !== undefined) return gameText;  //the game terminator was included in the previous move so append nothing
+
+    var beforeBoard = game.getBoard(index-1), afterBoard = game.getBoard(index);
+    var move = findBoardMove(beforeBoard, afterBoard);
+    var resultString;
+
+    //I'll write in base 2 to resultString then parse it. This is the easiest way to append bits
+   if (move === 'KC' || move === 'QC')
+   {
+       if(move === 'KC' && beforeBoard.isWhitesTurn()) resultString = '100 000' + '110 000';  //E1-G1 => 4,0 - 6,0
+       else if(move === 'QC' && beforeBoard.isWhitesTurn()) resultString = '100 000' + '010 000';  //E1-C1 => 4,0 - 2,0
+       else if(move === 'KC') resultString = '100 111' + '110 111';  //black's turn. E8-G8 => 4,7 - 6,7
+       else resultString = '100 111' + '010 111';  //black QC. E8-C8 => 4,7 - 2,7
+
+       resultString = resultString.replace(/ /g, '');  //remove all spaces
+       resultString += '000';  //no promotion
+   }
+   else
+   {
+       move.source = coordToIndex(move.source);
+       move.destination = coordToIndex(move.destination);
+       resultString = padTo3(move.source[0].toString(2)) + padTo3(move.source[1].toString(2));
+       resultString += padTo3(move.destination[0].toString(2)) + padTo3(move.destination[1].toString(2));
+       if(move.promotedTo !== undefined) move.promotedTo = move.promotedTo.toUpperCase();
+
+       if(move.promotedTo === 'N') resultString += '01';
+       else if(move.promotedTo === 'B') resultString += '10';
+       else if(move.promotedTo === 'Q') resultString += '11';
+       else resultString += '00';  //rook or no promotion
+
+       if(move.promotedTo === undefined) resultString += '0';
+       else resultString += '1';
+   }
+
+    if(game.getBoardArray().length-1 === index) resultString += '1';  //game is over because this is the last move
+    else resultString += '0';
+
+    //use substring instead of & to avoid big/little endian confusion (the string uses big but numbers use little)
+    var firstByte = Number.parseInt(resultString.substr(0, 8), 2);
+    var secondByte = Number.parseInt(resultString.substr(8, 8), 2);
+
+    return String.fromCharCode(firstByte, secondByte);
+
+   //might later be made more generic and moved to utility
+   function padTo3(str)
+   {
+       if(str.length === 1) return '00' + str;
+       if(str.length === 2) return '0' + str;
+       return str;
+   }
 }
 
 /**This function returns 3D array which is an array of board states (each of which is a 2D array of board squares).
