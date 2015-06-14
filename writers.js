@@ -12,6 +12,7 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
     var writer;
     var moveFormat = allTags.MoveFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
     if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
+    else if(moveFormat === 'MCN') writer = Write.MinimumCoordinateNotationMove;
     else if(moveFormat === 'FEN') writer = Write.FenRow;
     else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
 
@@ -107,6 +108,24 @@ Write.FriendlyCoordinateNotationMove = function(game, index)
 
     if(move.promotedTo !== undefined) result += '=' + move.promotedTo;
     //TODO: doesn't detect +#
+    return result.toUpperCase();
+}
+
+Write.MinimumCoordinateNotationMove = function(game, index)
+{
+    var beforeBoard = game.getBoard(index-1), afterBoard = game.getBoard(index);
+    var move = findBoardMove(beforeBoard, afterBoard);
+
+   if (move === 'KC' || move === 'QC')
+   {
+       if(move === 'KC' && beforeBoard.isWhitesTurn()) return 'E1G1';
+       if(move === 'QC' && beforeBoard.isWhitesTurn()) return 'E1C1';
+       if(move === 'KC') return 'E8G8';  //black's turn
+       return 'E8C8';  //black QC
+   }
+
+    var result = move.source + move.destination;
+    if(move.promotedTo !== undefined) result += move.promotedTo;
     return result.toUpperCase();
 }
 
