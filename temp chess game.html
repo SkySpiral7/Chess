@@ -80,7 +80,7 @@ function readInput()
     output.innerHTML = 'An error occurred.';  //will be overwritten if doesn't throw
     game = [];
     moveIndex = 0;
-    game = Write.GameBoardSquareArray(Parse.VariableGameNotation(gameText));
+    game = Write.GameSquareArray(Parse.VariableGameNotation(gameText));
     output.innerHTML = gameText;
     loadBoard();
 }

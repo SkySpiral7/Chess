@@ -17,7 +17,7 @@ output.value = eval('(function(){'+document.getElementById("inputCode").value+'}
 <textarea id="inputCode" rows="10" cols="120">var gameText = '';
 gameText += '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 *';
 
-return Write.GameBoardSquareArray(Parse.VariableGameNotation(gameText));
+return Write.FormatGameSquareArrayAsString(Write.GameSquareArray(Parse.VariableGameNotation(gameText)));
 </textarea><br />
 <input type="button" onClick="main();" value="Execute" /><br /><br />
 <a>Return Value:</a><br />

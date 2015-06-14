@@ -1,7 +1,8 @@
 var Write = {};
 /**The string returned has piece locations and the information that follows.*/
-Write.FenRow = function(board, fullMoveCount)
+Write.FenRow = function(game, index)
 {
+    var board = game.getBoard(index), fullMoveCount = Math.floor((index+1)/2);
     var state = board.getState();
     var result = Write.FenBoard(board) + ' ';
 
@@ -53,18 +54,47 @@ Write.FenBoard = function(board)
     return result;
 }
 
-Write.FriendlyCoordinateNotationGame = function(game)
+//TODO: save the gameTerminator and tags in game when parsing
+Write.VariableGameNotation = function(game, gameTerminator, allTags)
 {
-    var gameText = '[GameFormat "VGN"][MoveFormat "FCN"]';
+    if(allTags == null) allTags = {};
+    if(allTags.GameFormat == null) allTags.GameFormat = 'PGN';
+    if(allTags.MoveFormat == null) allTags.MoveFormat = 'SAN';
+
+    var gameFormat = allTags.GameFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
+    if(gameFormat !== 'VGN') throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
+
+    var writer;
+    var moveFormat = allTags.MoveFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
+    if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
+    else if(moveFormat === 'FEN') writer = Write.FenRow;
+    else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
+
+    var isBinary = (binaryFormats.indexOf(moveFormat) !== -1);
+    var gameText = '';
+   for (var tag in allTags)
+   {
+       if(!allTags.hasOwnProperty(tag)) continue;
+       if(isBinary && tag === 'MoveFormat') continue;  //MoveFormat must be last for binary so add it after all other tags
+       gameText += '[' + tag + ' "' + allTags[tag].replace(/"/g, '\\"') + '"]\r\n';
+   }
+    if(isBinary) gameText += '[MoveFormat "' + allTags.MoveFormat.replace(/"/g, '\\"') + '"]';  //can't have an end line after it
+
     //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
+       //although this function does allow you to pass in the SetUp tag, that isn't how it should be
    for (var i=1; i < game.getBoardArray().length; i++)
    {
-       gameText += Write.FriendlyCoordinateNotationMove(game.getBoard(i-1), game.getBoard(i)) + ' ';
+       gameText += Math.floor((i+1)/2) + '. ';  //white's move #
+       gameText += writer(game, i) + ' ';  //white's move
+       i++;
+       if(i < game.getBoardArray().length) gameText += writer(game, i) + '\r\n';  //black's move
    }
-    return gameText + '*';
+    return gameText + gameTerminator;
 }
-Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
+
+Write.FriendlyCoordinateNotationMove = function(game, index)
 {
+    var beforeBoard = game.getBoard(index-1), afterBoard = game.getBoard(index);
     var move = findBoardMove(beforeBoard, afterBoard);
     if(move === 'KC' || move === 'QC') return move;
 
@@ -80,7 +110,9 @@ Write.FriendlyCoordinateNotationMove = function(beforeBoard, afterBoard)
     return result.toUpperCase();
 }
 
-Write.GameBoardSquareArray = function(game)
+/**This function returns 3D array which is an array of board states (each of which is a 2D array of board squares).
+The array returned is used by "temp chess game.html" and by Write.FormatGameSquareArrayAsString.*/
+Write.GameSquareArray = function(game)
 {
     var resultArray = [];
    for (var i=0; i < game.getBoardArray().length; i++)
@@ -90,10 +122,12 @@ Write.GameBoardSquareArray = function(game)
     return resultArray;
 }
 
-/**The string returned is pasted into a shell html file to preserve a chess game.*/
-Write.FormatGameBoardSquareArrayAsString = function(squareArray)
+/**The string returned is pasted into "shell saved game.html" to preserve a chess game.
+The array passed in must be like that returned by Write.GameSquareArray.
+The array information isn't changed rather it is turned into a string and whiteSpace is added.*/
+Write.FormatGameSquareArrayAsString = function(gameSquareArray)
 {
-    var resultString = JSON.stringify(squareArray).replace(/"/g, '\'');
+    var resultString = JSON.stringify(gameSquareArray).replace(/"/g, '\'');
     resultString = resultString.replace(/\],\[/g, '],\r\n       [');
     resultString = resultString.replace(/\]\],/g, ']\r\n   ],');
     resultString = resultString.replace(/       \[\[/g, '   [\r\n       [');
