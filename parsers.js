@@ -1,3 +1,14 @@
+/*
+The only game format support for parsing is:
+VGN: Variable Game Notation: http://skyspiral7.blogspot.com/2015/05/vgn-variable-game-notation.html
+PGN isn't supported by the parser because it doesn't know file extensions
+    PGN: Portable Game Notation: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
+
+Supported move text formats for parsers:
+MCN: Minimum Coordinate Notation: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
+FCN: Friendly Coordinate Notation version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
+SFEN: Shortened Fen version 1.1
+*/
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
 var moveTextRegex = {};
 
@@ -214,10 +225,10 @@ Parse.FriendlyCoordinateNotationMove = function(board, text)
     //eg: Ra1-a8xQ, Pa7-B8xR=q+#+, Pa7-A8=N, Pa5-b6en+#, KC#, Ra1-a8##
     board = board.copy();
     text = text.toUpperCase();
-    if((/^KC\+?#?$/).test(text)){board.performKingsCastle(); board.switchTurns(); return board;}
-    if((/^QC\+?#?$/).test(text)){board.performQueensCastle(); board.switchTurns(); return board;}
+    if((/^KC\+?#?[+#]?$/).test(text)){board.performKingsCastle(); board.switchTurns(); return board;}
+    if((/^QC\+?#?[+#]?$/).test(text)){board.performQueensCastle(); board.switchTurns(); return board;}
 
-    var regexResult = (/^([KQBNRP])([A-H][1-8])-([A-H][1-8])(EN|(?:X[QBNRP])?)(?:=([QBNR]))?\+?#?$/).exec(text);
+    var regexResult = (/^([KQBNRP])([A-H][1-8])-([A-H][1-8])(EN|(?:X[QBNRP])?)(?:=([QBNR]))?\+?#?[+#]?$/).exec(text);
 
     var pieceMoved = regexResult[1];
     var source = regexResult[2];
@@ -248,16 +259,18 @@ Parse.FriendlyCoordinateNotationMove = function(board, text)
     board.switchTurns();
     return board;
 }
-moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?#?/i;
-
-//TODO: update regex
-// /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?(?:#[+#]?)?$/i
+moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?(?:#[+#]?)?/i
 
 /**This parses the piece locations and the information that follows.*/
 Parse.ShortenedFenRow = function(beforeBoard, text)
 {
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
-    text = text.replace(/\s+/g, ' ');
+    var nonEmptyCastling = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|[KQkq]{1,4})(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;
+    if(!nonEmptyCastling.test(text)) throw new SyntaxError('Too many spaces: ' + text);
+    //Verbose error message: Castling ability can't be empty if provided (or there was an extra space)
+    //the use of both regular expressions (nonEmptyCastling and moveTextRegex) has validated everything after the board
+
+    text = text.replace(/\s+/g, ' ').trim();
     var sections = text.split(' ');
     var afterBoard;
     var hasBeforeBoard = (beforeBoard !== undefined && beforeBoard !== null);
@@ -266,39 +279,40 @@ Parse.ShortenedFenRow = function(beforeBoard, text)
        //if previous board said white was next then assume that I'm moving for white if the information isn't available
     else afterBoard = new Board(true);
 
-    Parse.FenBoard(afterBoard, sections[0]);
+    Parse.FenBoard(afterBoard, sections.shift());
 
-   if (sections.length === 1)
+   if (sections.length === 0)
    {
        if(hasBeforeBoard) resetState(beforeBoard, afterBoard);  //default the state if no information is available
        return afterBoard;
    }
 
-    var newState = {isWhitesTurn: (sections[1].toLowerCase() === 'w')};
+    var newState = {};
+    if((/^[WBwb]$/).test(sections[0])) newState.isWhitesTurn = (sections.shift().toLowerCase() === 'w');
 
-   if (sections[2] !== undefined)
+   if (sections[0] !== undefined && !(/^(?:-|[KQkq]{1,4})$/).test(sections[0]))
    {
-       //newState.white.canKingsCastle = (sections[2][0] === 'K') it's the only one that can do that but I decided not to in order to keep them lined up
-       newState.white = {canKingsCastle: (sections[2].indexOf('K') !== -1), canQueensCastle: (sections[2].indexOf('Q') !== -1)};
-       newState.black = {canKingsCastle: (sections[2].indexOf('k') !== -1), canQueensCastle: (sections[2].indexOf('q') !== -1)};
-       //if sections[2] === '-' then everything is already set to false
+       //newState.white.canKingsCastle = (sections[0][0] === 'K') it's the only one that can do that but I decided not to in order to keep them lined up
+       newState.white = {canKingsCastle: (sections[0].indexOf('K') !== -1), canQueensCastle: (sections[0].indexOf('Q') !== -1)};
+       newState.black = {canKingsCastle: (sections[0].indexOf('k') !== -1), canQueensCastle: (sections[0].indexOf('q') !== -1)};
+       //if sections[0] === '-' then everything is already set to false
+       sections.shift();
    }
 
-    if(sections[3] !== undefined && (/^[A-H][1-8]$/i).test(sections[3])) newState.enPassantSquare = sections[3].toUpperCase();
+    if(sections[0] !== undefined && (/^[A-H][1-8]$/i).test(sections[0])) newState.enPassantSquare = sections.shift().toUpperCase();
+    else if(sections[0] === '-') sections.shift();  //newState.enPassantSquare is already set to 1
     //TODO: doesn't detect +#
 
     if(hasBeforeBoard) resetState(beforeBoard, afterBoard, newState);
     return afterBoard;
 }
-moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?/;
-
-//TODO: update regex
-// /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|K?Q?k?q?)(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;
+moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|K?Q?k?q?)(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?/;
 
 /**This only parses the piece locations.*/
 Parse.FenBoard = function(board, text)
 {
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
+    var originalText = text;
     //doesn't copy the board because a new one was passed in
     //this order is logical and most efficient due to slowest string growth rate
     text = text.replace(/2/g, '11');
@@ -310,6 +324,11 @@ Parse.FenBoard = function(board, text)
     text = text.replace(/8/g, '11111111');
     //although not very clean this is better than string manipulation
     //I also thought it was better than doing inside the loop: if(/[2-8]/) loop: board.setPieceIndex(fileIndex, rankIndex, '1');
+
+    var boardRegex = /^(?:[KQBNRPkqbnrp8]{8}\/){7}[KQBNRPkqbnrp8]{8}$/;
+    if(!boardRegex.test(text)) throw new SyntaxError('Invalid board: ' + originalText);
+    //if this passes then the entire half move text is valid
+
     var rankArray = text.split('/');
     rankArray.reverse();  //FEN starts with rank 8 instead of 1
    for (var rankIndex = 0; rankIndex < rankArray.length; rankIndex++)

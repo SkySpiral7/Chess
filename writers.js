@@ -1,3 +1,16 @@
+/*
+The only game format support for writing is:
+VGN: Variable Game Notation: http://skyspiral7.blogspot.com/2015/05/vgn-variable-game-notation.html
+PGN isn't supported by the writer because it can't write file extensions
+    PGN: Portable Game Notation: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
+
+Supported move text formats for writers:
+MCN: Minimum Coordinate Notation: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
+BCCF: Binary Compressed Coordinate Format version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
+BCFEN: Binary Compressed Fen version 1.1
+FCN: Friendly Coordinate Notation version 1.1
+FEN: Forsyth-Edwards Notation: http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+*/
 var Write = {};
 //TODO: save the gameTerminator and tags in game when parsing
 Write.VariableGameNotation = function(game, gameTerminator, allTags)
@@ -202,7 +215,7 @@ Write.BinaryCompressedFenRow = function(game, index, gameTerminator, gameText)
 
     var resultString = '', tempString = '';
     var boardSquares = game.getBoard(index).getBoardSquares();
-   for (var rankIndex = 7; rankIndex >= 0; rankIndex--)
+   for (var rankIndex = 7; rankIndex >= 0; rankIndex--)  //fen starts at rank 8 and is grouped by rank
    {
       for (var fileIndex = 0; fileIndex < 8; fileIndex++)
       {

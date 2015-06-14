@@ -99,10 +99,3 @@ function resetState(beforeBoard, afterPositions, knownState)
     //therefore correct the state of afterPositions
     afterPositions.changeState(afterBoard.getState());
 }
-
-function getRegexFlags(regex)
-{
-    if(!(regex instanceof RegExp)) throw new Error(regex + ' is not regex');
-    return (/\/([gim]{0,3})$/).exec(''+regex)[1];  //might return an empty string
-    //will throw if any other flag is used (eg: y)
-}
