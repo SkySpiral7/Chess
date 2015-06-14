@@ -1,6 +1,8 @@
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
+var moveTextRegex = {};
 
 var Parse = {};
+//TODO: allow more than 1 game with functions Parse.VariableGameNotationFile and Parse.VariableGameNotationGame
 Parse.VariableGameNotation = function(text)
 {
     //VGN definition: http://skyspiral7.blogspot.com/2015/05/vgn-variable-game-notation.html
@@ -9,8 +11,7 @@ Parse.VariableGameNotation = function(text)
     //TODO: SetUp tag not yet supported
     text = tagReturnValue.moveTextSection;
     var parser = findParser(tagReturnValue.allTags.MoveFormat);
-    text = moveTextSanitation(text);
-    var moveArray = moveTextSection(text, moveTextRegex[parser]);  //although text is modified it doesn't need to be returned because it isn't used again
+    var moveArray = Parse.VariableGameNotationMoveTextSection(text, moveTextRegex[parser]);
     return gameCreation(parser, moveArray);
 
    function findParser(formatFullString)
@@ -21,51 +22,6 @@ Parse.VariableGameNotation = function(text)
        else if(format === 'SFEN') return Parse.ShortenedFenRow;
        else throw new Error('MoveFormat ' + formatFullString +' is not supported.');
        //TODO: I currently don't have parsers for any binary format
-   }
-   //TODO: replace the move text section parsing with a finite state machine as well
-      //an example reason is that comments are not handled correct if nested. also RAV
-   function moveTextSanitation(text)
-   {
-       //all section comments are per PGN doc
-       text = text.replace(/\r\n?/g, '\n');  //section 3.2.2: export uses \n but imports should allow whatever end line
-       text = text.replace(/;.*?\n/g, ' ');  //section 5. rest of line comment. the only thing that requires end lines
-       text = text.replace(/;.*$/, '');  //remove the single line comment at the end since it doesn't have an end line
-       text = text.replace(/\s+/g, ' ');  //section 7 and others indicate that all other white space is treated the same
-       text = text.replace(/\{.*?\}/g, '');  //section 5. remove block comments
-       text = text.replace(/\$\d+/g, '');  //section 7. remove Numeric Annotation Glyph (NAG)
-       //text = text.replace(/\(.*?\)/g, '');  //section 7. Recursive Annotation Variations (RAV) TODO: are not so easily removed
-       return text;
-   }
-   function moveTextSection(text, formatRegex)
-   {
-       var moveArray = [];
-       var moveNumberRegex = /(?:\d+\.* )/;
-       //section 7 and 8.2.2. move numbers are optional and are allowed to appear before each half move
-       var moveRegExString = moveNumberRegex.source + '?(' + formatRegex.source + ')';
-       moveRegExString = '^' + moveRegExString + '(?: ' + moveRegExString + ')?';
-       var moveRegEx = new RegExp(moveRegExString, getRegexFlags(formatRegex));
-       text = text.trim();
-       var moveText = moveRegEx.exec(text);
-      while (moveText !== null)
-      {
-          moveArray.push(moveText[1]);  //white's move
-          if(moveText[2] !== undefined) moveArray.push(moveText[2]);  //black's move
-
-          text = text.replace(moveRegEx, '').trim();  //remove the move text I just read
-          moveText = moveRegEx.exec(text);
-      }
-       //game termination markers are thrown away but required. does not support multiple games
-      if (text === '')
-      {
-          console.log('Error occurred after move ' + ((moveArray.length / 2) + 1));
-          throw new SyntaxError('Game termination marker missing.');
-      }
-      if (!(/^(?:\*|1-0|0-1|1\/2-1\/2)$/).test(text))
-      {
-          console.log('Error occurred on move ' + ((moveArray.length / 2) + 1));
-          throw new SyntaxError('Regex: ' + formatRegex + ' doesn\'t match input starting with ' + text);
-      }
-       return moveArray;
    }
    function gameCreation(parser, moveArray)
    {
@@ -168,8 +124,81 @@ Parse.VariableGameNotationTagSection = function(text)
     if(!(/^VGN(?::.*?)?$/i).test(allTags.GameFormat)) throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
     return {allTags: allTags, moveTextSection: text.substr(i), isBinary: isBinary};
 }
+//TODO: currently doesn't support binary... maybe binary should be a separate function
+Parse.VariableGameNotationMoveTextSection = function(text, formatRegex)
+{
+    //state indicators:
+    var inBlockComment = false;
+    var inLineComment = false;
+    var ravDepth = 0;
 
-var moveTextRegex = {};
+    /**index/cursor/position*/
+    var i = 0;
+
+    //used for output:
+    var moveArray = [];
+
+    //used for parsing:
+    var moveNumberRegex = /^(?:\d+\.(?:\.\.|5)? )/;
+    var nagRegex = /^\$\d+/;
+
+   for (; i < text.length; ++i)
+   {
+      if (inLineComment)
+      {
+          if(text[i] === '\r' || text[i] === '\n') inLineComment = false;
+             //obviously functional for old Mac and Unix end lines
+             //also includes Windows \r\n because \r ends it and \n is ignored as whiteSpace
+          continue;
+      }
+      if (inBlockComment)
+      {
+          if(text[i] === '}') inBlockComment = false;
+          continue;
+      }
+      //to ignore rav I'm treating it as nestable comments
+      if (ravDepth !== 0)
+      {
+          if(text[i] === '(') ravDepth++;
+          else if(text[i] === ')') ravDepth--;
+          continue;
+      }
+       if(text[i] === ';') inLineComment = true;
+       else if(text[i] === '{') inBlockComment = true;
+       else if(text[i] === '(') ravDepth++;
+       else if(text[i].trim() === ''){}  //ignore whiteSpace
+      else if (moveNumberRegex.test(text.substring(i)))
+      {
+          var moveNumber = moveNumberRegex.exec(text.substring(i))[0];
+          i += moveNumber.length-1;
+      }
+      else if (nagRegex.test(text.substring(i)))
+      {
+          var nag = nagRegex.exec(text.substring(i))[0];
+          i += nag.length-1;
+      }
+       else if((/^(?:\*|1-0|0-1|1\/2-1\/2)$/).test(text.substring(i))) break;
+          //game termination markers are thrown away but required. does not support multiple games
+      else if (formatRegex.test(text.substring(i)))
+      {
+          var move = formatRegex.exec(text.substring(i))[0];
+          moveArray.push(move);
+          i += move.length-1;
+      }
+      else
+      {
+          console.log('Error occurred on move ' + ((moveArray.length / 2) + 1));
+          throw new SyntaxError('Regex: ' + formatRegex + ' doesn\'t match input starting with ' + text.substring(i));
+      }
+   }
+   if (text.substring(i) === '')
+   {
+       console.log('Error occurred after move ' + ((moveArray.length + 1) / 2));
+       throw new SyntaxError('Game termination marker missing.');
+   }
+    return moveArray;
+}
+
 Parse.MinimumCoordinateNotationMove = function(board, text)
 {
     //eg: a7a8q
@@ -178,7 +207,7 @@ Parse.MinimumCoordinateNotationMove = function(board, text)
     board.switchTurns();
     return board;
 }
-moveTextRegex[Parse.MinimumCoordinateNotationMove] = /[A-H][1-8][A-H][1-8][QBNR]?/i;
+moveTextRegex[Parse.MinimumCoordinateNotationMove] = /^[A-H][1-8][A-H][1-8][QBNR]?/i;
 
 Parse.FriendlyCoordinateNotationMove = function(board, text)
 {
@@ -219,7 +248,7 @@ Parse.FriendlyCoordinateNotationMove = function(board, text)
     board.switchTurns();
     return board;
 }
-moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?#?/i;
+moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?#?/i;
 
 //TODO: update regex
 // /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?(?:#[+#]?)?$/i
@@ -261,7 +290,7 @@ Parse.ShortenedFenRow = function(beforeBoard, text)
     if(hasBeforeBoard) resetState(beforeBoard, afterBoard, newState);
     return afterBoard;
 }
-moveTextRegex[Parse.ShortenedFenRow] = /(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?/;
+moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb] (?:-|K?Q?k?q?)(?: [a-hA-H][1-8])?)?(?: (?:\+#|\+|#))?/;
 
 //TODO: update regex
 // /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|K?Q?k?q?)(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;

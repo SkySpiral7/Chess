@@ -1,4 +1,42 @@
 var Write = {};
+//TODO: save the gameTerminator and tags in game when parsing
+Write.VariableGameNotation = function(game, gameTerminator, allTags)
+{
+    if(allTags == null) allTags = {};
+    if(allTags.GameFormat == null) allTags.GameFormat = 'PGN';
+    if(allTags.MoveFormat == null) allTags.MoveFormat = 'SAN';
+
+    var gameFormat = allTags.GameFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
+    if(gameFormat !== 'VGN') throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
+
+    var writer;
+    var moveFormat = allTags.MoveFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
+    if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
+    else if(moveFormat === 'FEN') writer = Write.FenRow;
+    else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
+
+    var isBinary = (binaryFormats.indexOf(moveFormat) !== -1);
+    var gameText = '';
+   for (var tag in allTags)
+   {
+       if(!allTags.hasOwnProperty(tag)) continue;
+       if(isBinary && tag === 'MoveFormat') continue;  //MoveFormat must be last for binary so add it after all other tags
+       gameText += '[' + tag + ' "' + allTags[tag].replace(/"/g, '\\"') + '"]\r\n';
+   }
+    if(isBinary) gameText += '[MoveFormat "' + allTags.MoveFormat.replace(/"/g, '\\"') + '"]';  //can't have an end line after it
+
+    //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
+       //although this function does allow you to pass in the SetUp tag, that isn't how it should be
+   for (var i=1; i < game.getBoardArray().length; i++)
+   {
+       gameText += Math.floor((i+1)/2) + '. ';  //white's move #
+       gameText += writer(game, i) + ' ';  //white's move
+       i++;
+       if(i < game.getBoardArray().length) gameText += writer(game, i) + '\r\n';  //black's move
+   }
+    return gameText + gameTerminator;
+}
+
 /**The string returned has piece locations and the information that follows.*/
 Write.FenRow = function(game, index)
 {
@@ -52,44 +90,6 @@ Write.FenBoard = function(board)
     result = result.replace(/111/g, '3');
     result = result.replace(/11/g, '2');
     return result;
-}
-
-//TODO: save the gameTerminator and tags in game when parsing
-Write.VariableGameNotation = function(game, gameTerminator, allTags)
-{
-    if(allTags == null) allTags = {};
-    if(allTags.GameFormat == null) allTags.GameFormat = 'PGN';
-    if(allTags.MoveFormat == null) allTags.MoveFormat = 'SAN';
-
-    var gameFormat = allTags.GameFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
-    if(gameFormat !== 'VGN') throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
-
-    var writer;
-    var moveFormat = allTags.MoveFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
-    if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
-    else if(moveFormat === 'FEN') writer = Write.FenRow;
-    else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
-
-    var isBinary = (binaryFormats.indexOf(moveFormat) !== -1);
-    var gameText = '';
-   for (var tag in allTags)
-   {
-       if(!allTags.hasOwnProperty(tag)) continue;
-       if(isBinary && tag === 'MoveFormat') continue;  //MoveFormat must be last for binary so add it after all other tags
-       gameText += '[' + tag + ' "' + allTags[tag].replace(/"/g, '\\"') + '"]\r\n';
-   }
-    if(isBinary) gameText += '[MoveFormat "' + allTags.MoveFormat.replace(/"/g, '\\"') + '"]';  //can't have an end line after it
-
-    //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
-       //although this function does allow you to pass in the SetUp tag, that isn't how it should be
-   for (var i=1; i < game.getBoardArray().length; i++)
-   {
-       gameText += Math.floor((i+1)/2) + '. ';  //white's move #
-       gameText += writer(game, i) + ' ';  //white's move
-       i++;
-       if(i < game.getBoardArray().length) gameText += writer(game, i) + '\r\n';  //black's move
-   }
-    return gameText + gameTerminator;
 }
 
 Write.FriendlyCoordinateNotationMove = function(game, index)

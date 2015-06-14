@@ -15,7 +15,7 @@ output.value = eval('(function(){'+document.getElementById("inputCode").value+'}
 <script src="writers.js"></script>
 <a>Code:</a><br />
 <textarea id="inputCode" rows="10" cols="120">var gameText = '';
-gameText += '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 *';
+gameText += '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 a7a6 2. b2b3 b7b6 *';
 
 return Write.FormatGameSquareArrayAsString(Write.GameSquareArray(Parse.VariableGameNotation(gameText)));
 </textarea><br />
