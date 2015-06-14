@@ -15,6 +15,7 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
     else if(moveFormat === 'MCN') writer = Write.MinimumCoordinateNotationMove;
     else if(moveFormat === 'FEN') writer = Write.FenRow;
     else if(moveFormat === 'BCCF') writer = Write.BinaryCompressedCoordinateFormatMove;
+    else if(moveFormat === 'BCFEN') writer = Write.BinaryCompressedFenRow;
     else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
 
     var isBinary = (binaryFormats.indexOf(moveFormat) !== -1);
@@ -194,6 +195,63 @@ Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminato
        return str;
    }
 }
+
+Write.BinaryCompressedFenRow = function(game, index, gameTerminator, gameText)
+{
+    if(gameTerminator !== undefined) return gameText + String.fromCharCode(0x88);
+
+    var resultString = '', tempString = '';
+    var boardSquares = game.getBoard(index).getBoardSquares();
+   for (var rankIndex = 7; rankIndex >= 0; rankIndex--)
+   {
+      for (var fileIndex = 0; fileIndex < 8; fileIndex++)
+      {
+          tempString += lookUp(boardSquares[fileIndex][rankIndex])
+         if (tempString.length === 2)
+         {
+             resultString += String.fromCharCode(Number.parseInt(tempString, 16));
+             tempString = '';
+         }
+      }
+   }
+    return resultString;
+    function lookUp(symbol){return Write.BinaryCompressedFenRow.symbolToHexString[symbol];}
+}
+/*
+0000 0: Empty square
+0001 1: White Rook
+0010 2: White Knight
+0011 3: White Bishop
+0100 4: White Queen
+0101 5: White King
+0110 6: White Pawn
+0111 7
+1000 8: Game termination (is actually 0x88)
+1001 9: Black Rook
+1010 A: Black Knight
+1011 B: Black Bishop
+1100 C: Black Queen
+1101 D: Black King
+1110 E: Black Pawn
+1111 F
+*/
+Write.BinaryCompressedFenRow.symbolToHexString = {
+    '1': '0',
+
+    'R': '1',
+    'N': '2',
+    'B': '3',
+    'Q': '4',
+    'K': '5',
+    'P': '6',
+
+    'r': '9',
+    'n': 'A',
+    'b': 'B',
+    'q': 'C',
+    'k': 'D',
+    'p': 'E'
+};
 
 /**This function returns 3D array which is an array of board states (each of which is a 2D array of board squares).
 The array returned is used by "temp chess game.html" and by Write.FormatGameSquareArrayAsString.*/
