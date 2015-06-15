@@ -154,6 +154,7 @@ Write.MinimumCoordinateNotationMove = function(game, index)
     return result.toUpperCase();
 }
 
+/**Note that the output string is in UTF-8.*/
 Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminator, gameText)
 {
     //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver
@@ -178,8 +179,8 @@ Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminato
    {
        move.source = coordToIndex(move.source);
        move.destination = coordToIndex(move.destination);
-       resultString = padTo3(move.source[0].toString(2)) + padTo3(move.source[1].toString(2));
-       resultString += padTo3(move.destination[0].toString(2)) + padTo3(move.destination[1].toString(2));
+       resultString = addLeading0s(move.source[0].toString(2), 3) + addLeading0s(move.source[1].toString(2), 3);
+       resultString += addLeading0s(move.destination[0].toString(2), 3) + addLeading0s(move.destination[1].toString(2), 3);
        if(move.promotedTo !== undefined) move.promotedTo = move.promotedTo.toUpperCase();
 
        if(move.promotedTo === 'N') resultString += '01';
@@ -199,16 +200,9 @@ Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminato
     var secondByte = Number.parseInt(resultString.substr(8, 8), 2);
 
     return String.fromCharCode(firstByte, secondByte);
-
-   //might later be made more generic and moved to utility
-   function padTo3(str)
-   {
-       if(str.length === 1) return '00' + str;
-       if(str.length === 2) return '0' + str;
-       return str;
-   }
 }
 
+/**Note that the output string is in UTF-8.*/
 Write.BinaryCompressedFenRow = function(game, index, gameTerminator, gameText)
 {
     if(gameTerminator !== undefined) return gameText + String.fromCharCode(0x88);

@@ -8,6 +8,9 @@ Supported move text formats for parsers:
 MCN: Minimum Coordinate Notation: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
 FCN: Friendly Coordinate Notation version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
 SFEN: Shortened Fen version 1.1
+
+Works in progress:
+BCCF: Binary Compressed Coordinate Format version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
 */
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
 var moveTextRegex = {};
@@ -338,4 +341,32 @@ Parse.FenBoard = function(board, text)
           board.setPieceIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
       }
    }
+}
+
+//TODO: parameters don't conform to Parse.VariableGameNotation
+Parse.BinaryCompressedCoordinateFormatMove = function(firstByte, secondByte, isWhitesTurn)
+{
+    //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver
+    var board = new Board(isWhitesTurn);
+    //converting to a base 2 string is the easiest way to index bits
+    var text = addLeading0s(firstByte.toString(2), 8) + addLeading0s(secondByte.toString(2), 8);
+
+    var file, rank, source, destination, promotedTo;
+    var binaryStringToSymbol = {'00': 'R', '01': 'N', '10': 'B', '11': 'Q'};
+
+    file = Number.parseInt(text.substr(0, 3), 2);
+    rank = Number.parseInt(text.substr(3, 3), 2);
+    source = indexToCoord(file, rank);
+
+    file = Number.parseInt(text.substr(6, 3), 2);
+    rank = Number.parseInt(text.substr(9, 3), 2);
+    destination = indexToCoord(file, rank);
+
+    promotedTo = binaryStringToSymbol[text.substr(12, 2)];
+    if(text.substr(14, 1) === '0') promotedTo = undefined;
+    else if(!isWhitesTurn) promotedTo.toLowerCase();
+    //TODO: throws away isGameOver bit
+
+    board.move(source, destination, promotedTo);
+    return board;
 }

@@ -20,6 +20,13 @@ var game = Parse.VariableGameNotation(gameText);
 
 //return Write.FormatGameSquareArrayAsString(Write.GameSquareArray(game));
 return Write.VariableGameNotation(game, '1-0', {GameFormat: 'VGN', MoveFormat: 'MCN'});
+/**/
+
+var game = new Game();
+game.move('a2', 'a4');
+var bytes = utf8StringToByteArray(Write.BinaryCompressedCoordinateFormatMove(game, 1));
+
+return Parse.BinaryCompressedCoordinateFormatMove(bytes[0], bytes[1], true).toString();
 </textarea><br />
 <input type="button" onClick="main();" value="Execute" /><br /><br />
 <a>Return Value:</a><br />

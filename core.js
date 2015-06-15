@@ -25,7 +25,7 @@ function Game()
 function Board(passedTurnIndicator)
 {
     var boardSquares =
-   [  //this rotation makes coordinate translation easier but doesn't match FEN
+   [  //this rotation makes coordinate translation easier but it doesn't match FEN
       ['R', 'P', '1', '1', '1', '1', 'p', 'r'],  //A1 is [0][0]
       ['N', 'P', '1', '1', '1', '1', 'p', 'n'],  //B
       ['B', 'P', '1', '1', '1', '1', 'p', 'b'],  //C
@@ -34,7 +34,7 @@ function Board(passedTurnIndicator)
       ['B', 'P', '1', '1', '1', '1', 'p', 'b'],  //F
       ['N', 'P', '1', '1', '1', '1', 'p', 'n'],  //G
       ['R', 'P', '1', '1', '1', '1', 'p', 'r']   //H8 is [7][7]
-   ];
+   ];  //boardSquares[file][rank]. file is A, rank is 1
     //programmer readable variables to track board state
     var white = {canKingsCastle: true, canQueensCastle: true};
     var black = {canKingsCastle: true, canQueensCastle: true};
