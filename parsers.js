@@ -11,6 +11,7 @@ SFEN: Shortened Fen version 1.1
 
 Works in progress:
 BCCF: Binary Compressed Coordinate Format version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
+BCFEN: Binary Compressed Fen version 1.1
 */
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
 var moveTextRegex = {};
@@ -370,3 +371,68 @@ Parse.BinaryCompressedCoordinateFormatMove = function(firstByte, secondByte, isW
     board.move(source, destination, promotedTo);
     return board;
 }
+
+//TODO: parameters don't conform to Parse.VariableGameNotation
+/**This only parses the piece locations.*/
+Parse.BinaryCompressedFenBoard = function(byteArray, isWhitesTurn)
+{
+    var board = new Board(isWhitesTurn);
+    //TODO: doesn't maintain board state
+
+    var nibbleArray = [];
+    var i = 0;
+   for (; i < byteArray.length; ++i)  //byteArray.length is always 32
+   {
+       nibbleArray.push((byteArray[i] & 0xF0) >>> 4);
+       nibbleArray.push(byteArray[i] & 0x0F);
+   }
+    //nibbleArray.length is always 64 which is equal to the number of squares
+    //TODO: change nibbleArray to squareFlatArray
+
+    i = 0;
+   for (var rankIndex = 7; rankIndex >= 0; rankIndex--)  //fen starts at rank 8 and is grouped by rank
+   {
+      for (var fileIndex = 0; fileIndex < 8; fileIndex++)
+      {
+          board.setPieceIndex(fileIndex, rankIndex, lookUp(nibbleArray[i]));
+          ++i;
+      }
+   }
+    return board;
+    function lookUp(nibble){return Parse.BinaryCompressedFenBoard.nibbleToSymbol[nibble];}
+}
+/*
+0000 0: Empty square
+0001 1: White Rook
+0010 2: White Knight
+0011 3: White Bishop
+0100 4: White Queen
+0101 5: White King
+0110 6: White Pawn
+0111 7
+1000 8: Game termination (is actually 0x88)
+1001 9: Black Rook
+1010 A: Black Knight
+1011 B: Black Bishop
+1100 C: Black Queen
+1101 D: Black King
+1110 E: Black Pawn
+1111 F
+*/
+Parse.BinaryCompressedFenBoard.nibbleToSymbol = {
+    0x0: '1',
+
+    0x1: 'R',
+    0x2: 'N',
+    0x3: 'B',
+    0x4: 'Q',
+    0x5: 'K',
+    0x6: 'P',
+
+    0x9: 'r',
+    0xA: 'n',
+    0xB: 'b',
+    0xC: 'q',
+    0xD: 'k',
+    0xE: 'p'
+};
