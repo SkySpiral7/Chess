@@ -5,13 +5,13 @@ PGN isn't supported by the parser because it doesn't know file extensions
     PGN: Portable Game Notation: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
 
 Supported move text formats for parsers:
+BCFEN: Binary Compressed Fen version 1.1
 MCN: Minimum Coordinate Notation: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
 FCN: Friendly Coordinate Notation version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
 SFEN: Shortened Fen version 1.1
 
 Works in progress:
-BCCF: Binary Compressed Coordinate Format version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
-BCFEN: Binary Compressed Fen version 1.1
+BCCF: Binary Compressed Coordinate Format version 1.1
 */
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
 var moveTextRegex = {};
@@ -26,6 +26,7 @@ Parse.VariableGameNotation = function(text)
     //TODO: SetUp tag not yet supported
     text = tagReturnValue.moveTextSection;
     var parser = findParser(tagReturnValue.allTags.MoveFormat);
+    if(tagReturnValue.isBinary) return parser(utf8StringToByteArray(text));
     var moveArray = Parse.VariableGameNotationMoveTextSection(text, moveTextRegex[parser]);
     return gameCreation(parser, moveArray);
 
@@ -35,8 +36,8 @@ Parse.VariableGameNotation = function(text)
        if(format === 'MCN') return Parse.MinimumCoordinateNotationMove;
        else if(format === 'FCN') return Parse.FriendlyCoordinateNotationMove;
        else if(format === 'SFEN') return Parse.ShortenedFenRow;
+       else if(format === 'BCFEN') return Parse.BinaryCompressedFenGame;
        else throw new Error('MoveFormat ' + formatFullString +' is not supported.');
-       //TODO: I currently don't have parsers for any binary format
    }
    function gameCreation(parser, moveArray)
    {
@@ -139,7 +140,7 @@ Parse.VariableGameNotationTagSection = function(text)
     if(!(/^VGN(?::.*?)?$/i).test(allTags.GameFormat)) throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
     return {allTags: allTags, moveTextSection: text.substr(i), isBinary: isBinary};
 }
-//TODO: currently doesn't support binary... maybe binary should be a separate function
+
 Parse.VariableGameNotationMoveTextSection = function(text, formatRegex)
 {
     //state indicators:
@@ -372,33 +373,43 @@ Parse.BinaryCompressedCoordinateFormatMove = function(firstByte, secondByte, isW
     return board;
 }
 
-//TODO: parameters don't conform to Parse.VariableGameNotation
-/**This only parses the piece locations.*/
-Parse.BinaryCompressedFenBoard = function(byteArray, isWhitesTurn)
+Parse.BinaryCompressedFenGame = function(byteArray)
 {
-    var board = new Board(isWhitesTurn);
-    //TODO: doesn't maintain board state
-
-    var nibbleArray = [];
-    var i = 0;
-   for (; i < byteArray.length; ++i)  //byteArray.length is always 32
+    var game = new Game();
+   while (byteArray.length > 1)
    {
-       nibbleArray.push((byteArray[i] & 0xF0) >>> 4);
-       nibbleArray.push(byteArray[i] & 0x0F);
+       if(byteArray.length < 32) throw new Error('Expecting length 32 actual: ' + byteArray.length);
+       game.addBoard(Parse.BinaryCompressedFenBoard(game.getBoard(), byteArray.splice(0, 32)));
    }
-    //nibbleArray.length is always 64 which is equal to the number of squares
-    //TODO: change nibbleArray to squareFlatArray
+    if(byteArray.length !== 1) throw new Error('Expecting length 1 actual: ' + byteArray.length);
+    if(byteArray[0] !== 0x88) throw new Error('Missing game termination marker. Got: 0x' + byteArray[0].toString(16));
+    return game;
+}
 
-    i = 0;
+/**This only parses the piece locations.*/
+Parse.BinaryCompressedFenBoard = function(beforeBoard, byteArray)
+{
+    var afterBoard = new Board(beforeBoard.isWhitesTurn());
+       //isWhitesTurn is for who can move next and I'm moving next. the turn will be switched later by resetState
+
+    var squareFlatArray = [];
+   for (var i = 0; i < byteArray.length; ++i)  //byteArray.length is always 32
+   {
+       squareFlatArray.push(lookUp((byteArray[i] & 0xF0) >>> 4));
+       squareFlatArray.push(lookUp(byteArray[i] & 0x0F));
+   }
+    //squareFlatArray.length is always 64 which is equal to the number of squares
+    var squareFlatIterator = {i:-1, next: function(){return squareFlatArray[++this.i];}};
+
    for (var rankIndex = 7; rankIndex >= 0; rankIndex--)  //fen starts at rank 8 and is grouped by rank
    {
       for (var fileIndex = 0; fileIndex < 8; fileIndex++)
       {
-          board.setPieceIndex(fileIndex, rankIndex, lookUp(nibbleArray[i]));
-          ++i;
+          afterBoard.setPieceIndex(fileIndex, rankIndex, squareFlatIterator.next());
       }
    }
-    return board;
+    resetState(beforeBoard, afterBoard);
+    return afterBoard;
     function lookUp(nibble){return Parse.BinaryCompressedFenBoard.nibbleToSymbol[nibble];}
 }
 /*

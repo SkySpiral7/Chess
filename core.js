@@ -1,6 +1,6 @@
 function Game()
 {
-    var boardArray = [new Board(true)];  //game starts with only initial starting positions
+    var boardArray = [new Board(true)];  //game starts with only initial starting positions on white's turn
     //var isWhitesTurn = ((boardArray.length & 1) === 1);  //if odd
     //var fullMoveCount = Math.floor((boardArray.length - 1) / 2);
     //all state info is stored in board so that it can change each move

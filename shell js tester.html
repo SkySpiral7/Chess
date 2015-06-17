@@ -14,19 +14,13 @@ output.value = eval('(function(){'+document.getElementById("inputCode").value+'}
 <script src="util.js"></script>
 <script src="writers.js"></script>
 <a>Code:</a><br />
-<textarea id="inputCode" rows="10" cols="120">var gameText = '';
-gameText += '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 a7a6 2. b2b3 b7b6 *';
+<textarea id="inputCode" rows="10" cols="120">var gameText = '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 a7a6 2. b2b3 b7b6 *';
 var game = Parse.VariableGameNotation(gameText);
 
-//return Write.FormatGameSquareArrayAsString(Write.GameSquareArray(game));
-return Write.VariableGameNotation(game, '1-0', {GameFormat: 'VGN', MoveFormat: 'MCN'});
-/**/
+gameText = Write.VariableGameNotation(game, '*', {GameFormat: 'VGN', MoveFormat: 'BCFEN'});
+game = Parse.VariableGameNotation(gameText);
 
-var game = new Game();
-game.move('a2', 'a4');
-var bytes = utf8StringToByteArray(Write.BinaryCompressedCoordinateFormatMove(game, 1));
-
-return Parse.BinaryCompressedCoordinateFormatMove(bytes[0], bytes[1], true).toString();
+return Write.FormatGameSquareArrayAsString(Write.GameSquareArray(game));
 </textarea><br />
 <input type="button" onClick="main();" value="Execute" /><br /><br />
 <a>Return Value:</a><br />
