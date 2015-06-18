@@ -5,13 +5,14 @@ PGN isn't supported by the parser because it doesn't know file extensions
     PGN: Portable Game Notation: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
 
 Supported move text formats for parsers:
+BCCF: Binary Compressed Coordinate Format version 1.1
 BCFEN: Binary Compressed Fen version 1.1
-MCN: Minimum Coordinate Notation: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
-FCN: Friendly Coordinate Notation version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
+FCN: Friendly Coordinate Notation version 1.1
+MCN: Minimum Coordinate Notation
 SFEN: Shortened Fen version 1.1
 
-Works in progress:
-BCCF: Binary Compressed Coordinate Format version 1.1
+Definitions of version 1.0 of BCCF, BCFEN, MCN, FCN: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
+Definitions of version 1.1 of BCCF, BCFEN, FCN: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
 */
 var binaryFormats = ['BCCF', 'BCFEN', 'PGC'];
 var moveTextRegex = {};
@@ -20,8 +21,6 @@ var Parse = {};
 //TODO: allow more than 1 game with functions Parse.VariableGameNotationFile and Parse.VariableGameNotationGame
 Parse.VariableGameNotation = function(text)
 {
-    //VGN definition: http://skyspiral7.blogspot.com/2015/05/vgn-variable-game-notation.html
-    //PGN original definition: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
     var tagReturnValue = Parse.VariableGameNotationTagSection(text);
     //TODO: SetUp tag not yet supported
     text = tagReturnValue.moveTextSection;
@@ -33,10 +32,11 @@ Parse.VariableGameNotation = function(text)
    function findParser(formatFullString)
    {
        var format = formatFullString.replace(/:.*$/, '').toUpperCase();  //remove the first : and everything after it
-       if(format === 'MCN') return Parse.MinimumCoordinateNotationMove;
-       else if(format === 'FCN') return Parse.FriendlyCoordinateNotationMove;
-       else if(format === 'SFEN') return Parse.ShortenedFenRow;
+       if(format === 'BCCF') return Parse.BinaryCompressedCoordinateFormatGame;
        else if(format === 'BCFEN') return Parse.BinaryCompressedFenGame;
+       else if(format === 'FCN') return Parse.FriendlyCoordinateNotationMove;
+       else if(format === 'MCN') return Parse.MinimumCoordinateNotationMove;
+       else if(format === 'SFEN') return Parse.ShortenedFenRow;
        else throw new Error('MoveFormat ' + formatFullString +' is not supported.');
    }
    function gameCreation(parser, moveArray)
@@ -345,7 +345,29 @@ Parse.FenBoard = function(board, text)
    }
 }
 
-//TODO: parameters don't conform to Parse.VariableGameNotation
+Parse.BinaryCompressedCoordinateFormatGame = function(byteArray)
+{
+    var game = new Game();
+    var didThrow = true;
+   try
+   {
+      while (true)
+      {
+          if(byteArray.length === 1) throw new Error('Expecting length 2 actual: 1');
+          var parseResult = Parse.BinaryCompressedCoordinateFormatMove(byteArray.shift(), byteArray.shift(), game.getBoard().isWhitesTurn());
+          if(parseResult.isGameOver) break;
+          game.addBoard(parseResult.board);
+      }
+       if(byteArray.length !== 0) throw new Error('Expecting length 0 actual: ' + byteArray.length);
+       didThrow = false;
+   }
+   finally
+   {
+       if(didThrow) console.log('Error occurred on move ' + (game.getBoardArray().length / 2));
+   }
+    return game;
+}
+
 Parse.BinaryCompressedCoordinateFormatMove = function(firstByte, secondByte, isWhitesTurn)
 {
     //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver
@@ -367,22 +389,30 @@ Parse.BinaryCompressedCoordinateFormatMove = function(firstByte, secondByte, isW
     promotedTo = binaryStringToSymbol[text.substr(12, 2)];
     if(text.substr(14, 1) === '0') promotedTo = undefined;
     else if(!isWhitesTurn) promotedTo.toLowerCase();
-    //TODO: throws away isGameOver bit
 
     board.move(source, destination, promotedTo);
-    return board;
+    board.switchTurns();
+    return {board: board, isGameOver: (text.substr(15, 1) === '1')};
 }
 
 Parse.BinaryCompressedFenGame = function(byteArray)
 {
     var game = new Game();
-   while (byteArray.length > 1)
+    var didThrow = true;
+   try
    {
-       if(byteArray.length < 32) throw new Error('Expecting length 32 actual: ' + byteArray.length);
-       game.addBoard(Parse.BinaryCompressedFenBoard(game.getBoard(), byteArray.splice(0, 32)));
+      while (byteArray.length > 1)
+      {
+          if(byteArray.length < 32) throw new Error('Expecting length 32 actual: ' + byteArray.length);
+          game.addBoard(Parse.BinaryCompressedFenBoard(game.getBoard(), byteArray.splice(0, 32)));
+      }
+       if(byteArray.length !== 1) throw new Error('Expecting length 1 actual: 0');
+       if(byteArray[0] !== 0x88) throw new Error('Missing game termination marker. Got: 0x' + byteArray[0].toString(16));
    }
-    if(byteArray.length !== 1) throw new Error('Expecting length 1 actual: ' + byteArray.length);
-    if(byteArray[0] !== 0x88) throw new Error('Missing game termination marker. Got: 0x' + byteArray[0].toString(16));
+   finally
+   {
+       if(didThrow) console.log('Error occurred on move ' + (game.getBoardArray().length / 2));
+   }
     return game;
 }
 

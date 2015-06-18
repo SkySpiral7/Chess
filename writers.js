@@ -5,11 +5,14 @@ PGN isn't supported by the writer because it can't write file extensions
     PGN: Portable Game Notation: https://web.archive.org/web/20100528142843/http://www.very-best.de/pgn-spec.htm
 
 Supported move text formats for writers:
-MCN: Minimum Coordinate Notation: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
-BCCF: Binary Compressed Coordinate Format version 1.1: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
+BCCF: Binary Compressed Coordinate Format version 1.1
 BCFEN: Binary Compressed Fen version 1.1
 FCN: Friendly Coordinate Notation version 1.1
 FEN: Forsyth-Edwards Notation: http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+MCN: Minimum Coordinate Notation
+
+Definitions of version 1.0 of BCCF, BCFEN, MCN, FCN: http://skyspiral7.blogspot.com/2015/04/chess-notation.html
+Definitions of version 1.1 of BCCF, BCFEN, FCN: http://skyspiral7.blogspot.com/2015/05/chess-notation-updates-11.html
 */
 var Write = {};
 //TODO: save the gameTerminator and tags in game when parsing
@@ -24,11 +27,11 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
 
     var writer;
     var moveFormat = allTags.MoveFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
-    if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
-    else if(moveFormat === 'MCN') writer = Write.MinimumCoordinateNotationMove;
-    else if(moveFormat === 'FEN') writer = Write.FenRow;
-    else if(moveFormat === 'BCCF') writer = Write.BinaryCompressedCoordinateFormatMove;
+    if(moveFormat === 'BCCF') writer = Write.BinaryCompressedCoordinateFormatMove;
     else if(moveFormat === 'BCFEN') writer = Write.BinaryCompressedFenRow;
+    else if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
+    else if(moveFormat === 'FEN') writer = Write.FenRow;
+    else if(moveFormat === 'MCN') writer = Write.MinimumCoordinateNotationMove;
     else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
 
     var isBinary = (binaryFormats.indexOf(moveFormat) !== -1);
