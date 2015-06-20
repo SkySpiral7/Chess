@@ -25,7 +25,7 @@ Parse.VariableGameNotation = function(text)
     //TODO: SetUp tag not yet supported
     text = tagReturnValue.moveTextSection;
     var parser = findParser(tagReturnValue.allTags.MoveFormat);
-    if(tagReturnValue.isBinary) return parser(utf8StringToByteArray(text));
+    if(tagReturnValue.isBinary) return parser(stringToAsciiByteArray(text));
     var moveArray = Parse.VariableGameNotationMoveTextSection(text, moveTextRegex[parser]);
     return gameCreation(parser, moveArray);
 
@@ -37,23 +37,14 @@ Parse.VariableGameNotation = function(text)
        else if(format === 'FCN') return Parse.FriendlyCoordinateNotationMove;
        else if(format === 'MCN') return Parse.MinimumCoordinateNotationMove;
        else if(format === 'SFEN') return Parse.ShortenedFenRow;
-       else throw new Error('MoveFormat ' + formatFullString +' is not supported.');
+       else throw new Error('MoveFormat ' + formatFullString + ' is not supported.');
    }
    function gameCreation(parser, moveArray)
    {
        var game = new Game();
       for (var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
       {
-          var didThrow = true;
-         try
-         {
-             game.addBoard(parser(game.getBoard(), moveArray[moveIndex]));
-             didThrow = false;
-         }
-         finally
-         {
-             if(didThrow) console.log('Error occurred on move ' + ((moveIndex / 2) + 1));
-         }
+          parser(game, moveArray[moveIndex]);
       }
        return game;
    }
@@ -215,23 +206,20 @@ Parse.VariableGameNotationMoveTextSection = function(text, formatRegex)
     return moveArray;
 }
 
-Parse.MinimumCoordinateNotationMove = function(board, text)
+Parse.MinimumCoordinateNotationMove = function(game, text)
 {
     //eg: a7a8q
-    board = board.copy();
-    board.move(text.substr(0, 2), text.substr(2, 2), text[4]);  //text[4] might be undefined
-    board.switchTurns();
-    return board;
+    game.move(text.substr(0, 2), text.substr(2, 2), text[4]);  //text[4] might be undefined
 }
 moveTextRegex[Parse.MinimumCoordinateNotationMove] = /^[A-H][1-8][A-H][1-8][QBNR]?/i;
 
-Parse.FriendlyCoordinateNotationMove = function(board, text)
+Parse.FriendlyCoordinateNotationMove = function(game, text)
 {
     //eg: Ra1-a8xQ, Pa7-B8xR=q+#+, Pa7-A8=N, Pa5-b6en+#, KC#, Ra1-a8##
-    board = board.copy();
+    var board = game.getBoard();
     text = text.toUpperCase();
-    if((/^KC\+?#?[+#]?$/).test(text)){board.performKingsCastle(); board.switchTurns(); return board;}
-    if((/^QC\+?#?[+#]?$/).test(text)){board.performQueensCastle(); board.switchTurns(); return board;}
+    if((/^KC\+?#?[+#]?$/).test(text)){game.performKingsCastle(); return;}
+    if((/^QC\+?#?[+#]?$/).test(text)){game.performQueensCastle(); return;}
 
     var regexResult = (/^([KQBNRP])([A-H][1-8])-([A-H][1-8])(EN|(?:X[QBNRP])?)(?:=([QBNR]))?\+?#?[+#]?$/).exec(text);
 
@@ -242,49 +230,54 @@ Parse.FriendlyCoordinateNotationMove = function(board, text)
     var promotedTo = regexResult[5];  //might be undefined
 
     var actualPieceMoved = board.getPiece(source).toUpperCase();
-    if(actualPieceMoved === '1') board.error('Move was ' + text + ' but that square is empty.');
-    if(pieceMoved !== actualPieceMoved) board.error('Move was ' + text + ' but the board\'s piece is ' + actualPieceMoved);
+    if(actualPieceMoved === '1') game.error('Move was ' + text + ' but that square is empty.');
+    if(pieceMoved !== actualPieceMoved) game.error('Move was ' + text + ' but the board\'s piece is ' + actualPieceMoved);
 
     if(captured === '') captured = '1';
    else
    {
-       if(captured === 'EN'){board.performEnPassant(source); board.switchTurns(); return board;}
+       if(captured === 'EN'){game.performEnPassant(source); return;}
        captured = captured[1];  //remove 'X'
    }
 
-    board.move(source, destination, promotedTo);
+    game.move(source, destination, promotedTo);
 
     var actualCapturedPiece = board.getState().capturedPiece.toUpperCase();
    if (captured !== actualCapturedPiece)
    {
-       if(actualCapturedPiece === '1') board.error('Move was ' + text + ' but nothing was captured.');
-       board.error('Move was ' + text + ' but ' + actualCapturedPiece + ' was captured.');
+       if(actualCapturedPiece === '1') game.error('Move was ' + text + ' but nothing was captured.');
+       game.error('Move was ' + text + ' but ' + actualCapturedPiece + ' was captured.');
    }
-
-    board.switchTurns();
-    return board;
 }
 moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?(?:#[+#]?)?/i
 
-/**This parses the piece locations and the information that follows.*/
-Parse.ShortenedFenRow = function(beforeBoard, text)
+/**This parses the piece locations and the information that follows.
+It still returns a board so that it might be used for starting positions.*/
+Parse.ShortenedFenRow = function(game, text)
 {
+    var hasBeforeBoard = (game !== undefined && game !== null);
+    var beforeBoard, afterBoard;
+
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
     var nonEmptyCastling = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|[KQkq]{1,4})(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;
-    if(!nonEmptyCastling.test(text)) throw new SyntaxError('Too many spaces: ' + text);
-    //Verbose error message: Castling ability can't be empty if provided (or there was an extra space)
+   if (!nonEmptyCastling.test(text))
+   {
+       var message = 'Too many spaces: ' + text;
+       //Verbose error message: Castling ability can't be empty if provided (or there was an extra space)
+       if(hasBeforeBoard) game.error(message);
+       throw new SyntaxError(message);
+   }
     //the use of both regular expressions (nonEmptyCastling and moveTextRegex) has validated everything after the board
 
     text = text.replace(/\s+/g, ' ').trim();
     var sections = text.split(' ');
-    var afterBoard;
-    var hasBeforeBoard = (beforeBoard !== undefined && beforeBoard !== null);
+    if(hasBeforeBoard) beforeBoard = game.getBoard();
     if(hasBeforeBoard) afterBoard = new Board(beforeBoard.isWhitesTurn());
        //isWhitesTurn is for who can move next just like FEN's move indicator
        //if previous board said white was next then assume that I'm moving for white if the information isn't available
     else afterBoard = new Board(true);
 
-    Parse.FenBoard(afterBoard, sections.shift());
+    Parse.FenBoard(game, afterBoard, sections.shift());
 
    if (sections.length === 0)
    {
@@ -314,7 +307,7 @@ Parse.ShortenedFenRow = function(beforeBoard, text)
 moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|K?Q?k?q?)(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?/;
 
 /**This only parses the piece locations.*/
-Parse.FenBoard = function(board, text)
+Parse.FenBoard = function(game, board, text)
 {
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
     var originalText = text;
@@ -331,8 +324,13 @@ Parse.FenBoard = function(board, text)
     //I also thought it was better than doing inside the loop: if(/[2-8]/) loop: board.setPieceIndex(fileIndex, rankIndex, '1');
 
     var boardRegex = /^(?:[KQBNRPkqbnrp8]{8}\/){7}[KQBNRPkqbnrp8]{8}$/;
-    if(!boardRegex.test(text)) throw new SyntaxError('Invalid board: ' + originalText);
-    //if this passes then the entire half move text is valid
+   if (!boardRegex.test(text))
+   {
+       var message = 'Invalid board: ' + originalText;
+       if(game == null) throw new SyntaxError(message);
+       game.error(message);
+   }
+    //if this passes then the entire half move text is valid. (this treats /44/ as /8/)
 
     var rankArray = text.split('/');
     rankArray.reverse();  //FEN starts with rank 8 instead of 1
@@ -348,30 +346,18 @@ Parse.FenBoard = function(board, text)
 Parse.BinaryCompressedCoordinateFormatGame = function(byteArray)
 {
     var game = new Game();
-    var didThrow = true;
-   try
+   while (true)
    {
-      while (true)
-      {
-          if(byteArray.length === 1) throw new Error('Expecting length 2 actual: 1');
-          var parseResult = Parse.BinaryCompressedCoordinateFormatMove(byteArray.shift(), byteArray.shift(), game.getBoard().isWhitesTurn());
-          if(parseResult.isGameOver) break;
-          game.addBoard(parseResult.board);
-      }
-       if(byteArray.length !== 0) throw new Error('Expecting length 0 actual: ' + byteArray.length);
-       didThrow = false;
+       if(byteArray.length === 1) game.error('Expecting length 2 actual: 1');
+       if(Parse.BinaryCompressedCoordinateFormatMove(game, byteArray.shift(), byteArray.shift())) break;
    }
-   finally
-   {
-       if(didThrow) console.log('Error occurred on move ' + (game.getBoardArray().length / 2));
-   }
+    if(byteArray.length !== 0) game.error('Expecting length 0 actual: ' + byteArray.length);
     return game;
 }
 
-Parse.BinaryCompressedCoordinateFormatMove = function(firstByte, secondByte, isWhitesTurn)
+Parse.BinaryCompressedCoordinateFormatMove = function(game, firstByte, secondByte)
 {
     //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver
-    var board = new Board(isWhitesTurn);
     //converting to a base 2 string is the easiest way to index bits
     var text = addLeading0s(firstByte.toString(2), 8) + addLeading0s(secondByte.toString(2), 8);
 
@@ -390,29 +376,20 @@ Parse.BinaryCompressedCoordinateFormatMove = function(firstByte, secondByte, isW
     if(text.substr(14, 1) === '0') promotedTo = undefined;
     else if(!isWhitesTurn) promotedTo.toLowerCase();
 
-    board.move(source, destination, promotedTo);
-    board.switchTurns();
-    return {board: board, isGameOver: (text.substr(15, 1) === '1')};
+    game.move(source, destination, promotedTo);
+    return (text.substr(15, 1) === '1');  //returns true if game is over
 }
 
 Parse.BinaryCompressedFenGame = function(byteArray)
 {
     var game = new Game();
-    var didThrow = true;
-   try
+   while (byteArray.length > 1)
    {
-      while (byteArray.length > 1)
-      {
-          if(byteArray.length < 32) throw new Error('Expecting length 32 actual: ' + byteArray.length);
-          game.addBoard(Parse.BinaryCompressedFenBoard(game.getBoard(), byteArray.splice(0, 32)));
-      }
-       if(byteArray.length !== 1) throw new Error('Expecting length 1 actual: 0');
-       if(byteArray[0] !== 0x88) throw new Error('Missing game termination marker. Got: 0x' + byteArray[0].toString(16));
+       if(byteArray.length < 32) game.error('Expecting length 32 actual: ' + byteArray.length);
+       game.addBoard(Parse.BinaryCompressedFenBoard(game.getBoard(), byteArray.splice(0, 32)));
    }
-   finally
-   {
-       if(didThrow) console.log('Error occurred on move ' + (game.getBoardArray().length / 2));
-   }
+    if(byteArray.length !== 1) game.error('Expecting length 1 actual: 0');
+    if(byteArray[0] !== 0x88) game.error('Missing game termination marker. Got: 0x' + byteArray[0].toString(16));
     return game;
 }
 

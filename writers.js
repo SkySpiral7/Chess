@@ -32,38 +32,49 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
     else if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
     else if(moveFormat === 'FEN') writer = Write.FenRow;
     else if(moveFormat === 'MCN') writer = Write.MinimumCoordinateNotationMove;
-    else throw new Error('MoveFormat ' + allTags.MoveFormat +' is not supported.');
+    else throw new Error('MoveFormat ' + allTags.MoveFormat + ' is not supported.');
 
     var isBinary = (binaryFormats.indexOf(moveFormat) !== -1);
-    var gameText = '';
-   for (var tag in allTags)
+    var gameText = writeTagSection(allTags, isBinary);
+    return writeMoveTextSection(game, gameText, gameTerminator, isBinary);
+
+   function writeTagSection(allTags, isBinary)
    {
-       if(!allTags.hasOwnProperty(tag)) continue;
-       if(isBinary && tag === 'MoveFormat') continue;  //MoveFormat must be last for binary so add it after all other tags
-       gameText += '[' + tag + ' "' + allTags[tag].replace(/"/g, '\\"') + '"]\r\n';
+       var gameText = '';
+      for (var tag in allTags)
+      {
+          if(!allTags.hasOwnProperty(tag)) continue;
+          if(isBinary && tag === 'MoveFormat') continue;  //MoveFormat must be last for binary so add it after all other tags
+          gameText += '[' + tag + ' "' + allTags[tag].replace(/"/g, '\\"') + '"]\r\n';
+      }
+       if(isBinary) gameText += '[MoveFormat "' + allTags.MoveFormat.replace(/"/g, '\\"') + '"]';  //can't have an end line after it
+       return gameText;
    }
-   if (isBinary)
+   function writeMoveTextSection(game, gameText, gameTerminator, isBinary)
    {
-       gameText += '[MoveFormat "' + allTags.MoveFormat.replace(/"/g, '\\"') + '"]';  //can't have an end line after it
+       //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
+          //although this function does allow you to pass in the SetUp tag, that isn't how it should be
+      if (isBinary)
+      {
+         for (var i=1; i < game.getBoardArray().length; i++)
+         {
+             gameText += writer(game, i);  //white's move
+             i++;
+             if(i < game.getBoardArray().length) gameText += writer(game, i);  //black's move
+         }
+          return writer(game, i, gameTerminator, gameText);  //each binary writer handles game termination differently
+      }
+
+      //else if plain text:
       for (var i=1; i < game.getBoardArray().length; i++)
       {
-          gameText += writer(game, i);  //white's move
+          gameText += Math.floor((i+1)/2) + '. ';  //white's move #
+          gameText += writer(game, i) + ' ';  //white's move
           i++;
-          if(i < game.getBoardArray().length) gameText += writer(game, i);  //black's move
+          if(i < game.getBoardArray().length) gameText += writer(game, i) + '\r\n';  //black's move
       }
-       return writer(game, i, gameTerminator, gameText);  //each binary writer handles game termination differently
+       return gameText + gameTerminator;
    }
-
-    //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
-       //although this function does allow you to pass in the SetUp tag, that isn't how it should be
-   for (var i=1; i < game.getBoardArray().length; i++)
-   {
-       gameText += Math.floor((i+1)/2) + '. ';  //white's move #
-       gameText += writer(game, i) + ' ';  //white's move
-       i++;
-       if(i < game.getBoardArray().length) gameText += writer(game, i) + '\r\n';  //black's move
-   }
-    return gameText + gameTerminator;
 }
 
 /**The string returned has piece locations and the information that follows.*/

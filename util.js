@@ -91,8 +91,6 @@ function resetState(beforeBoard, afterPositions, knownState)
     else afterBoard.move(move.source, move.destination, move.promotedTo);  //promotedTo might be undefined
 
     if(knownState !== undefined) afterBoard.changeState(knownState);
-    if(knownState === undefined || knownState.isWhitesTurn === undefined) afterBoard.switchTurns();
-       //if no turn information is available then assume the turn switches
 
     //now afterBoard has the same positions as afterPositions
     //but because the movement functions were used the state will be correct
@@ -103,30 +101,12 @@ function resetState(beforeBoard, afterPositions, knownState)
 /**I created and posted this on stack overflow:
 http://stackoverflow.com/questions/6226189/how-to-convert-a-string-to-bytearray/30836196#30836196
 */
-function utf8StringToByteArray(str)
+function stringToAsciiByteArray(str)
 {
     var bytes = [];
    for (var i = 0; i < str.length; ++i)
    {
-       var charCode = str.charCodeAt(i);
-       //char > 4 bytes is impossible since UTF-32 is 4 bytes
-      if (charCode > 0xFFFFFF)  // char > 3 bytes. If UTF-32 (high codes)
-      {
-          bytes.push((charCode & 0xFF000000) >>> 24);
-          charCode &= 0xFFFFFF;
-      }
-      if (charCode > 0xFFFF)  // char > 2 bytes. If UTF-32 (lower codes)
-      {
-          bytes.push((charCode & 0xFF0000) >>> 16);
-          charCode &= 0xFFFF;
-      }
-      if (charCode > 0xFF)  // char > 1 byte. If UTF-16 or UTF-32
-      {
-          bytes.push((charCode & 0xFF00) >>> 8);
-          charCode &= 0xFF;
-      }
-       //UTF-8, UTF-16, UTF-32:
-       bytes.push(charCode);  //no need to & since it can only be 1 byte by this point
+       bytes.push(str.charCodeAt(i));  //I'm assuming that the character code is only a byte
    }
     return bytes;
 }

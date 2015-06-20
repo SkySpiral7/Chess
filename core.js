@@ -17,8 +17,30 @@ function Game()
        //copy and change the last (current) board
        var result = this.getBoard().copy();
        result.move(source, destination, promotedTo);
-       result.switchTurns();
        this.addBoard(result);
+   };
+   this.performKingsCastle = function()
+   {
+       var result = this.getBoard().copy();
+       result.performKingsCastle();
+       this.addBoard(result);
+   };
+   this.performQueensCastle = function()
+   {
+       var result = this.getBoard().copy();
+       result.performQueensCastle();
+       this.addBoard(result);
+   };
+   this.performEnPassant = function(source)
+   {
+       var result = this.getBoard().copy();
+       result.performEnPassant(source);
+       this.addBoard(result);
+   };
+   this.error = function(message)
+   {
+       console.log('Error occurred on move ' + (boardArray.length / 2));
+       this.getBoard().error(message);
    };
 }
 
@@ -27,7 +49,7 @@ function Board(passedTurnIndicator)
     var boardSquares =
    [  //this rotation makes coordinate translation easier but it doesn't match FEN
       ['R', 'P', '1', '1', '1', '1', 'p', 'r'],  //A1 is [0][0]
-      ['N', 'P', '1', '1', '1', '1', 'p', 'n'],  //B
+      ['N', 'P', '1', '1', '1', '1', 'p', 'n'],  //B3 is [1][2]
       ['B', 'P', '1', '1', '1', '1', 'p', 'b'],  //C
       ['Q', 'P', '1', '1', '1', '1', 'p', 'q'],  //D
       ['K', 'P', '1', '1', '1', '1', 'p', 'k'],  //E
@@ -113,6 +135,7 @@ function Board(passedTurnIndicator)
           this.simpleMove(source, destination);
           this.castlingAbilityLoss(pieceMoved, source);
           if(pieceMoved === 'p' || pieceMoved === 'P') this.handlePawnMove(source, destination, promotedTo);
+          this.switchTurns();
       }
    };
    this.simpleMove = function(source, destination)
@@ -188,6 +211,7 @@ function Board(passedTurnIndicator)
        else deadPawnSquare = destination[0] + '4';
 
        this.setPiece(deadPawnSquare, '1');
+       this.switchTurns();
    };
    this.performKingsCastle = function()
    {
@@ -207,6 +231,7 @@ function Board(passedTurnIndicator)
           this.simpleMove('h8', 'f8');  //moves the rook
           this.simpleMove('e8', 'g8');  //moves the king
       }
+       this.switchTurns();
    };
    this.performQueensCastle = function()
    {
@@ -226,6 +251,7 @@ function Board(passedTurnIndicator)
           this.simpleMove('a8', 'd8');  //moves the rook
           this.simpleMove('e8', 'c8');  //moves the king
       }
+       this.switchTurns();
    };
    this.setPiece = function(coord, symbol)
    {
