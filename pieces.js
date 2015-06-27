@@ -31,14 +31,11 @@ function Rook(source, isWhite, board)
     var allMoves;
    this.getAllMoves = function()
    {
-       //TODO: check board for castling
       if (allMoves == null)
       {
           allMoves = [];
-          allMoves = allMoves.concat(perpetuateMove(source, 1, 0));
-          allMoves = allMoves.concat(perpetuateMove(source, -1, 0));
-          allMoves = allMoves.concat(perpetuateMove(source, 0, -1));
-          allMoves = allMoves.concat(perpetuateMove(source, 0, 1));
+          //TODO: check board for castling
+          allMoves = allMoves.concat(movementType.cardinal(source));
       }
        return allMoves;
    };
@@ -53,7 +50,16 @@ function Rook(source, isWhite, board)
 }
 function Knight(source, isWhite)
 {
-    this.getAllMoves = function(){return [];};
+    var allMoves;
+   this.getAllMoves = function()
+   {
+      if (allMoves == null)
+      {
+          //TODO: moves
+          allMoves = [];
+      }
+       return allMoves;
+   };
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -68,14 +74,7 @@ function Bishop(source, isWhite)
     var allMoves;
    this.getAllMoves = function()
    {
-      if (allMoves == null)
-      {
-          allMoves = [];
-          allMoves = allMoves.concat(perpetuateMove(source, 1, 1));
-          allMoves = allMoves.concat(perpetuateMove(source, -1, -1));
-          allMoves = allMoves.concat(perpetuateMove(source, 1, -1));
-          allMoves = allMoves.concat(perpetuateMove(source, -1, 1));
-      }
+       if(allMoves == null) allMoves = movementType.diagonal(source);
        return allMoves;
    };
 
@@ -95,17 +94,8 @@ function Queen(source, isWhite)
       if (allMoves == null)
       {
           allMoves = [];
-          //diagonal moves
-          allMoves = allMoves.concat(perpetuateMove(source, 1, 1));
-          allMoves = allMoves.concat(perpetuateMove(source, -1, -1));
-          allMoves = allMoves.concat(perpetuateMove(source, 1, -1));
-          allMoves = allMoves.concat(perpetuateMove(source, -1, 1));
-
-          //cardinal moves
-          allMoves = allMoves.concat(perpetuateMove(source, 1, 0));
-          allMoves = allMoves.concat(perpetuateMove(source, -1, 0));
-          allMoves = allMoves.concat(perpetuateMove(source, 0, -1));
-          allMoves = allMoves.concat(perpetuateMove(source, 0, 1));
+          allMoves = allMoves.concat(movementType.diagonal(source));
+          allMoves = allMoves.concat(movementType.cardinal(source));
       }
        return allMoves;
    };
@@ -120,7 +110,17 @@ function Queen(source, isWhite)
 }
 function King(source, isWhite, board)
 {
-    this.getAllMoves = function(){return [];};  //check board for castling
+    var allMoves;
+   this.getAllMoves = function()
+   {
+      if (allMoves == null)
+      {
+          //TODO: check board for castling
+          //TODO: moves
+          allMoves = [];
+      }
+       return allMoves;
+   };
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -132,7 +132,17 @@ function King(source, isWhite, board)
 }
 function Pawn(source, isWhite, board)
 {
-    this.getAllMoves = function(){return [];};  //check board for en passant and capture
+    var allMoves;
+   this.getAllMoves = function()
+   {
+      if (allMoves == null)
+      {
+          //TODO: check board for en passant and capture
+          //TODO: moves
+          allMoves = [];
+      }
+       return allMoves;
+   };
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -143,19 +153,38 @@ function Pawn(source, isWhite, board)
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
 }
 
+var movementType = {};
+movementType.diagonal = function(source)
+{
+    var diagonalMoves = [];
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, 1, 1));
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, 1, -1));
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, -1, 1));
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, -1, -1));
+    return diagonalMoves;
+}
+movementType.cardinal = function(source)
+{
+    var cardinalMoves = [];
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 1, 0));
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, -1, 0));
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 0, 1));
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 0, -1));
+    return cardinalMoves;
+}
+
 /**Returns an array of moves in the direction indicated (source excluded).
 Eg: ('a1', 1, 1) => ['b2', 'c3', ..., 'h8'];
 Eg: ('a1', -1, 0) => [];*/
 function perpetuateMove(source, fileMovement, rankMovement)
 {
     var moves = [];
-    var sourceIndexies = coordToIndex(source);
-    var fileIndex = sourceIndexies[0], rankIndex = sourceIndexies[1];
-   while (isOnBoard(fileIndex) && isOnBoard(rankIndex))
+    var indexies = coordToIndex(source);
+   while (isOnBoard(indexies.fileIndex) && isOnBoard(indexies.rankIndex))
    {
-       moves.push(indexToCoord(fileIndex, rankIndex));
-       fileIndex += fileMovement;
-       rankIndex += rankMovement;
+       moves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex));
+       indexies.fileIndex += fileMovement;
+       indexies.rankIndex += rankMovement;
    }
     moves.shift();  //remove source from results
     return moves;

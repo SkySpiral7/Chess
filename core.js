@@ -157,7 +157,7 @@ function Board(passedTurnIndicator)
    };
    this.handlePawnMove = function(source, destination, promotedTo)
    {
-       var moveDifference = Math.abs(coordToIndex(source)[1] - coordToIndex(destination)[1]);
+       var moveDifference = Math.abs(coordToIndex(source).rankIndex - coordToIndex(destination).rankIndex);
       if (moveDifference === 2)  //double move occurred
       {
           if(isWhitesTurn) enPassantSquare = source[0] + '3';
@@ -256,7 +256,7 @@ function Board(passedTurnIndicator)
    this.setPiece = function(coord, symbol)
    {
        var indexies = coordToIndex(coord);
-       this.setPieceIndex(indexies[0], indexies[1], symbol);
+       this.setPieceIndex(indexies.fileIndex, indexies.rankIndex, symbol);
    };
    this.setPieceIndex = function(fileIndex, rankIndex, symbol)
    {
@@ -265,7 +265,7 @@ function Board(passedTurnIndicator)
    this.getPiece = function(coord)
    {
        var indexies = coordToIndex(coord);
-       return this.getPieceIndex(indexies[0], indexies[1]);
+       return this.getPieceIndex(indexies.fileIndex, indexies.rankIndex);
    };
    this.getPieceIndex = function(fileIndex, rankIndex)
    {

@@ -193,8 +193,8 @@ Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminato
    {
        move.source = coordToIndex(move.source);
        move.destination = coordToIndex(move.destination);
-       resultString = addLeading0s(move.source[0].toString(2), 3) + addLeading0s(move.source[1].toString(2), 3);
-       resultString += addLeading0s(move.destination[0].toString(2), 3) + addLeading0s(move.destination[1].toString(2), 3);
+       resultString = addLeading0s(move.source.fileIndex.toString(2), 3) + addLeading0s(move.source.rankIndex.toString(2), 3);
+       resultString += addLeading0s(move.destination.fileIndex.toString(2), 3) + addLeading0s(move.destination.rankIndex.toString(2), 3);
        if(move.promotedTo !== undefined) move.promotedTo = move.promotedTo.toUpperCase();
 
        if(move.promotedTo === 'N') resultString += '01';

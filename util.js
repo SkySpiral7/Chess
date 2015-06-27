@@ -1,17 +1,18 @@
 function coordToIndex(coord)
 {
-    var indexies = [0, 0];
     coord = coord.toUpperCase();
-    indexies[0] = coord.charCodeAt(0);
-    indexies[0] -= 'A'.charCodeAt(0);  //adjust to 0
-    indexies[1] = Number.parseInt(coord[1]);
-    indexies[1]--;  //adjust to 0
-    return indexies;
+
+    var fileIndex = coord.charCodeAt(0);
+    fileIndex -= 'A'.charCodeAt(0);  //adjust to 0
+
+    var rankIndex = Number.parseInt(coord[1]);
+    rankIndex--;  //adjust to 0
+
+    return {fileIndex: fileIndex, rankIndex: rankIndex};
 }
 function indexToCoord(fileIndex, rankIndex)
 {
-    var coord;
-    coord = String.fromCharCode(fileIndex + ('A'.charCodeAt(0)));  //adjust from 0
+    var coord = String.fromCharCode(fileIndex + ('A'.charCodeAt(0)));  //adjust from 0
     coord += (rankIndex + 1);  //adjust from 0
     return coord;
 }
