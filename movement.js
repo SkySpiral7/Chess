@@ -79,9 +79,6 @@ function isKingInCheck(board, isWhitesTurn)
 
 function getAllLegalMoves(board, isWhitesTurn)
 {
-    //TODO: castling, en passant, promotions
-    board.changeState({white: {canKingsCastle: false, canQueensCastle: false},
-       black: {canKingsCastle: false, canQueensCastle: false}, enPassantSquare: '-'});
     var allLegalMoves = [];
     var allPieces = getAllPieces(board, isWhitesTurn);
    for (var pieceIndex = 0; pieceIndex < allPieces.length; pieceIndex++)
@@ -90,14 +87,25 @@ function getAllLegalMoves(board, isWhitesTurn)
       for (var moveIndex = 0; moveIndex < allMoves.length; moveIndex++)
       {
           var result = board.copy();
-          result.move(allPieces[pieceIndex].getSource(), allMoves[moveIndex]);
-          if(!isKingInCheck(result, isWhitesTurn)) allLegalMoves.push(allPieces[pieceIndex].getSource() + allMoves[moveIndex]);
+          var source = allPieces[pieceIndex].getSource();
+
+         switch (allMoves[moveIndex])
+         {
+             case 'EN': result.performEnPassant(source); break;
+             case 'KC': result.performKingsCastle(); break;
+             case 'QC': result.performQueensCastle(); break;
+            default:
+                var destination = allMoves[moveIndex];
+                var promotedTo;
+                if(allPieces[pieceIndex] instanceof Pawn && (destination[1] === '1' || destination[1] === '8')) promotedTo = 'Q';
+                   //the symbol of promotedTo is not related to move legality
+                //else promotedTo = undefined;
+
+                result.move(source, destination, promotedTo);
+             break;
+         }
+          if(!isKingInCheck(result, isWhitesTurn)) allLegalMoves.push(allMoves[moveIndex]);
       }
    }
     return allLegalMoves;
 }
-/*Test that passed:
-var board = new Board(true);
-Parse.FenBoard(null, board, 'q7/8/8/8/8/8/8/1K6');
-return JSON.stringify(getAllLegalMoves(board, true));
-*/
