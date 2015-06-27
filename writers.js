@@ -168,7 +168,7 @@ Write.MinimumCoordinateNotationMove = function(game, index)
     return result.toUpperCase();
 }
 
-/**Note that the output string is in UTF-8.*/
+/**Note that the output string is in US-ASCII.*/
 Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminator, gameText)
 {
     //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver
@@ -216,7 +216,7 @@ Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminato
     return String.fromCharCode(firstByte, secondByte);
 }
 
-/**Note that the output string is in UTF-8.*/
+/**Note that the output string is in US-ASCII.*/
 Write.BinaryCompressedFenRow = function(game, index, gameTerminator, gameText)
 {
     if(gameTerminator !== undefined) return gameText + String.fromCharCode(0x88);
