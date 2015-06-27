@@ -1,5 +1,6 @@
 function symbolToPiece(originalSymbol, source, board)
 {
+    source = source.toUpperCase();
     var symbol = originalSymbol.toUpperCase();
     var isWhite = (symbol === originalSymbol);
    switch (symbol)
@@ -50,13 +51,39 @@ function Rook(source, isWhite, board)
 }
 function Knight(source, isWhite)
 {
+    source = source.toUpperCase();
     var allMoves;
    this.getAllMoves = function()
    {
       if (allMoves == null)
       {
-          //TODO: moves
           allMoves = [];
+          var indexies = coordToIndex(source);
+
+         //2 up (white's perspective)
+         if (indexies.rankIndex <= 5)
+         {
+             if(source[0] !== 'A') allMoves.push(indexToCoord(indexies.fileIndex - 1, indexies.rankIndex + 2));
+             if(source[0] !== 'H') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex + 2));
+         }
+         //2 right (white's perspective)
+         if (indexies.fileIndex <= 5)
+         {
+             if(source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex + 2, indexies.rankIndex - 1));
+             if(source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex + 2, indexies.rankIndex + 1));
+         }
+         //2 down (white's perspective)
+         if (indexies.rankIndex >= 2)
+         {
+             if(source[0] !== 'A') allMoves.push(indexToCoord(indexies.fileIndex - 1, indexies.rankIndex - 2));
+             if(source[0] !== 'H') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex - 2));
+         }
+         //2 left (white's perspective)
+         if (indexies.fileIndex >= 2)
+         {
+             if(source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex - 2, indexies.rankIndex - 1));
+             if(source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex - 2, indexies.rankIndex + 1));
+         }
       }
        return allMoves;
    };
@@ -110,14 +137,27 @@ function Queen(source, isWhite)
 }
 function King(source, isWhite, board)
 {
+    source = source.toUpperCase();
     var allMoves;
    this.getAllMoves = function()
    {
       if (allMoves == null)
       {
           //TODO: check board for castling
-          //TODO: moves
           allMoves = [];
+          var indexies = coordToIndex(source);
+
+          //cardinal moves:
+          if(source[0] !== 'A') allMoves.push(indexToCoord(indexies.fileIndex - 1, indexies.rankIndex));
+          if(source[0] !== 'H') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex));
+          if(source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex - 1));
+          if(source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex + 1));
+
+          //diagonal moves:
+          if(source[0] !== 'A' && source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex - 1, indexies.rankIndex - 1));
+          if(source[0] !== 'A' && source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex - 1, indexies.rankIndex + 1));
+          if(source[0] !== 'H' && source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex - 1));
+          if(source[0] !== 'H' && source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex + 1));
       }
        return allMoves;
    };
@@ -138,8 +178,18 @@ function Pawn(source, isWhite, board)
       if (allMoves == null)
       {
           //TODO: check board for en passant and capture
-          //TODO: moves
           allMoves = [];
+          //don't need to check the edge of the board: (isWhite && source[1] === '8') and (!isWhite && source[1] === '1')
+          //because promotion is required
+          var indexies = coordToIndex(source);
+
+          //normal move:
+          if(isWhite) allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex + 1));
+          else allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex - 1));
+
+          //double move:
+          if(isWhite && source[1] === '2') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex + 2));
+          else if(!isWhite && source[1] === '7') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex - 2));
       }
        return allMoves;
    };
