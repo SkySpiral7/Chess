@@ -17,6 +17,10 @@ function indexToCoord(fileIndex, rankIndex)
     return coord;
 }
 
+function findSymbol(board, symbol)
+{
+}
+
 /**Returns an array of every coordinate that is difference between the 2 boards.*/
 function findBoardDifferences(beforeBoard, afterBoard)
 {
