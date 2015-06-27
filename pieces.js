@@ -6,9 +6,9 @@ function symbolToPiece(originalSymbol, source, board)
    switch (symbol)
    {
        case 'R': return new Rook(source, isWhite, board);
-       case 'N': return new Knight(source, isWhite);
-       case 'B': return new Bishop(source, isWhite);
-       case 'Q': return new Queen(source, isWhite);
+       case 'N': return new Knight(source, isWhite, board);
+       case 'B': return new Bishop(source, isWhite, board);
+       case 'Q': return new Queen(source, isWhite, board);
        case 'K': return new King(source, isWhite, board);
        case 'P': return new Pawn(source, isWhite, board);
    }
@@ -21,9 +21,8 @@ javascript can't have real interfaces because it would compile anyway.
 function Piece(source, isWhite)
 {
     /**Array of destinations that can be moved to and might contain: 'KC', 'QC', 'EN'.
-    Excludes destinations that are not on the board.
-    Includes illegal moves such as capturing your own king or moving through a piece.*
-    this.getAllMoves = function(){return ['b7', 'g3'];};
+    Doesn't account for check otherwise only legal moves are returned.*
+    this.getAllMoves = function(){return ['G2', 'KC'];};
     this.toString = function(){return 'Black King on A5'};
     if(isWhite) this.symbol = 'P';
     else this.symbol = 'p';
@@ -38,7 +37,7 @@ function Rook(source, isWhite, board)
       if (allMoves == null)
       {
           allMoves = [];
-          allMoves = allMoves.concat(movementType.cardinal(source));
+          allMoves = allMoves.concat(movementType.cardinal(source, isWhite, board));
 
           //castling:
           //the source is checked so that only the correct rook will return QC etc
@@ -58,7 +57,7 @@ function Rook(source, isWhite, board)
     this.symbol = 'R';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
 }
-function Knight(source, isWhite)
+function Knight(source, isWhite, board)
 {
     source = source.toUpperCase();
     var allMoves;
@@ -93,6 +92,7 @@ function Knight(source, isWhite)
              if(source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex - 2, indexies.rankIndex - 1));
              if(source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex - 2, indexies.rankIndex + 1));
          }
+          allMoves = filterFriendlyFire(board, allMoves, isWhite);
       }
        return allMoves;
    };
@@ -105,12 +105,12 @@ function Knight(source, isWhite)
     this.symbol = 'N';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
 }
-function Bishop(source, isWhite)
+function Bishop(source, isWhite, board)
 {
     var allMoves;
    this.getAllMoves = function()
    {
-       if(allMoves == null) allMoves = movementType.diagonal(source);
+       if(allMoves == null) allMoves = movementType.diagonal(source, isWhite, board);
        return allMoves;
    };
 
@@ -122,7 +122,7 @@ function Bishop(source, isWhite)
     this.symbol = 'B';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
 }
-function Queen(source, isWhite)
+function Queen(source, isWhite, board)
 {
     var allMoves;
    this.getAllMoves = function()
@@ -130,8 +130,8 @@ function Queen(source, isWhite)
       if (allMoves == null)
       {
           allMoves = [];
-          allMoves = allMoves.concat(movementType.diagonal(source));
-          allMoves = allMoves.concat(movementType.cardinal(source));
+          allMoves = allMoves.concat(movementType.diagonal(source, isWhite, board));
+          allMoves = allMoves.concat(movementType.cardinal(source, isWhite, board));
       }
        return allMoves;
    };
@@ -167,9 +167,11 @@ function King(source, isWhite, board)
           if(source[0] !== 'H' && source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex - 1));
           if(source[0] !== 'H' && source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex + 1));
 
+          allMoves = filterFriendlyFire(board, allMoves, isWhite);
+
           //castling:
           if(isWhite && board.getState().white.canKingsCastle) allMoves.push('KC');
-          else if(!isWhite board.getState().black.canKingsCastle) allMoves.push('KC');
+          else if(!isWhite && board.getState().black.canKingsCastle) allMoves.push('KC');
           if(isWhite && board.getState().white.canQueensCastle) allMoves.push('QC');
           else if(!isWhite && board.getState().black.canQueensCastle) allMoves.push('QC');
       }
@@ -201,17 +203,38 @@ function Pawn(source, isWhite, board)
           var normalMoveRank;
           if(isWhite) normalMoveRank = indexies.rankIndex + 1;
           else normalMoveRank = indexies.rankIndex - 1;
-          allMoves.push(indexToCoord(indexies.fileIndex, normalMoveRank));
+          if(board.getPieceByIndex(indexies.fileIndex, normalMoveRank) === '1')
+             allMoves.push(indexToCoord(indexies.fileIndex, normalMoveRank));
 
-          //double move:
-          if(isWhite && source[1] === '2') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex + 2));
-          else if(!isWhite && source[1] === '7') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex - 2));
+         //double move:
+         if (isWhite && source[1] === '2')
+         {
+             if(board.getPieceByIndex(indexies.fileIndex, indexies.rankIndex + 1) === '1'
+                && board.getPieceByIndex(indexies.fileIndex, indexies.rankIndex + 2) === '1')
+                allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex + 2));
+         }
+         else if (!isWhite && source[1] === '7')
+         {
+             if(board.getPieceByIndex(indexies.fileIndex, indexies.rankIndex - 1) === '1'
+                && board.getPieceByIndex(indexies.fileIndex, indexies.rankIndex - 2) === '1')
+                allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex - 2));
+         }
 
-          //normal capture:
-          if(source[0] !== 'A' && board.getPieceByIndex(indexies.fileIndex - 1, normalMoveRank) !== '1')
-                             allMoves.push(indexToCoord(indexies.fileIndex - 1, normalMoveRank));
-          if(source[0] !== 'H' && board.getPieceByIndex(indexies.fileIndex + 1, normalMoveRank) !== '1')
-                             allMoves.push(indexToCoord(indexies.fileIndex + 1, normalMoveRank));
+         //normal capture:
+         if (source[0] !== 'A' && board.getPieceByIndex(indexies.fileIndex - 1, normalMoveRank) !== '1')
+         {
+             var attackTarget = board.getPieceByIndex(indexies.fileIndex - 1, normalMoveRank);
+             var isTargetWhite = (attackTarget === attackTarget.toUpperCase());
+             //if not the same color then capture is possible
+             if(isWhite !== isTargetWhite) allMoves.push(indexToCoord(indexies.fileIndex - 1, normalMoveRank));
+         }
+         if (source[0] !== 'H' && board.getPieceByIndex(indexies.fileIndex + 1, normalMoveRank) !== '1')
+         {
+             var attackTarget = board.getPieceByIndex(indexies.fileIndex + 1, normalMoveRank);
+             var isTargetWhite = (attackTarget === attackTarget.toUpperCase());
+             //if not the same color then capture is possible
+             if(isWhite !== isTargetWhite) allMoves.push(indexToCoord(indexies.fileIndex + 1, normalMoveRank));
+         }
 
           //en passant:
           if(source[0] !== 'A' && indexToCoord(indexies.fileIndex - 1, normalMoveRank) === board.getState().enPassantSquare)
@@ -232,39 +255,52 @@ function Pawn(source, isWhite, board)
 }
 
 var movementType = {};
-movementType.diagonal = function(source)
+movementType.diagonal = function(source, isWhite, board)
 {
     var diagonalMoves = [];
-    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, 1, 1));
-    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, 1, -1));
-    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, -1, 1));
-    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, -1, -1));
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, 1, 1, isWhite, board));
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, 1, -1, isWhite, board));
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, -1, 1, isWhite, board));
+    diagonalMoves = diagonalMoves.concat(perpetuateMove(source, -1, -1, isWhite, board));
     return diagonalMoves;
 }
-movementType.cardinal = function(source)
+movementType.cardinal = function(source, isWhite, board)
 {
     var cardinalMoves = [];
-    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 1, 0));
-    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, -1, 0));
-    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 0, 1));
-    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 0, -1));
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 1, 0, isWhite, board));
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, -1, 0, isWhite, board));
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 0, 1, isWhite, board));
+    cardinalMoves = cardinalMoves.concat(perpetuateMove(source, 0, -1, isWhite, board));
     return cardinalMoves;
 }
 
 /**Returns an array of moves in the direction indicated (source excluded).
 Eg: ('a1', 1, 1) => ['b2', 'c3', ..., 'h8'];
 Eg: ('a1', -1, 0) => [];*/
-function perpetuateMove(source, fileMovement, rankMovement)
+function perpetuateMove(source, fileMovement, rankMovement, isWhite, board)
 {
     var moves = [];
     var indexies = coordToIndex(source);
-   while (isOnBoard(indexies.fileIndex) && isOnBoard(indexies.rankIndex))
+
+    //initial move to exclude source (and so checking empty squares can work):
+    indexies.fileIndex += fileMovement;
+    indexies.rankIndex += rankMovement;
+   while (isOnBoard(indexies.fileIndex) && isOnBoard(indexies.rankIndex)
+       && board.getPieceByIndex(indexies.fileIndex, indexies.rankIndex) === '1')
+       //stop when we reach the edge of the board or a non-empty square
    {
        moves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex));
        indexies.fileIndex += fileMovement;
        indexies.rankIndex += rankMovement;
    }
-    moves.shift();  //remove source from results
+    //if stopped because of non-empty square, check to see if it can be captured
+   if (isOnBoard(indexies.fileIndex) && isOnBoard(indexies.rankIndex))
+   {
+       var attackTarget = board.getPieceByIndex(indexies.fileIndex, indexies.rankIndex);
+       var isTargetWhite = (attackTarget === attackTarget.toUpperCase());
+       //if not the same color then capture is possible
+       if(isWhite !== isTargetWhite) moves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex));
+   }
     return moves;
     function isOnBoard(index){return (index >= 0 && index <= 7);};
 }
