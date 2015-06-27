@@ -16,6 +16,7 @@ function symbolToPiece(originalSymbol, source, board)
 /*
 Interface for the pieces.
 javascript can't have real interfaces because it would compile anyway.
+/**All pieces are immutable. Therefore the piece can't be moved after creation.*
 function Piece(source, isWhite)
 {
     /**Excludes destinations that are not on the board. Includes illegal moves such as capturing your own king.*
@@ -27,12 +28,25 @@ function Piece(source, isWhite)
 */
 function Rook(source, isWhite, board)
 {
-    this.getAllMoves = function(){return [];};  //check board for castling
-    this.toString = function(){return name;};
+    var allMoves;
+   this.getAllMoves = function()
+   {
+       //TODO: check board for castling
+      if (allMoves == null)
+      {
+          allMoves = [];
+          allMoves = allMoves.concat(perpetuateMove(source, 1, 0));
+          allMoves = allMoves.concat(perpetuateMove(source, -1, 0));
+          allMoves = allMoves.concat(perpetuateMove(source, 0, -1));
+          allMoves = allMoves.concat(perpetuateMove(source, 0, 1));
+      }
+       return allMoves;
+   };
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
     name += 'Rook on ' + source;
+    this.toString = function(){return name;};
 
     this.symbol = 'R';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
@@ -40,35 +54,66 @@ function Rook(source, isWhite, board)
 function Knight(source, isWhite)
 {
     this.getAllMoves = function(){return [];};
-    this.toString = function(){return name;};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
     name += 'Knight on ' + source;
+    this.toString = function(){return name;};
 
     this.symbol = 'N';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
 }
 function Bishop(source, isWhite)
 {
-    this.getAllMoves = function(){return [];};
-    this.toString = function(){return name;};
+    var allMoves;
+   this.getAllMoves = function()
+   {
+      if (allMoves == null)
+      {
+          allMoves = [];
+          allMoves = allMoves.concat(perpetuateMove(source, 1, 1));
+          allMoves = allMoves.concat(perpetuateMove(source, -1, -1));
+          allMoves = allMoves.concat(perpetuateMove(source, 1, -1));
+          allMoves = allMoves.concat(perpetuateMove(source, -1, 1));
+      }
+       return allMoves;
+   };
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
     name += 'Bishop on ' + source;
+    this.toString = function(){return name;};
 
     this.symbol = 'B';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
 }
 function Queen(source, isWhite)
 {
-    this.getAllMoves = function(){return [];};
-    this.toString = function(){return name;};
+    var allMoves;
+   this.getAllMoves = function()
+   {
+      if (allMoves == null)
+      {
+          allMoves = [];
+          //diagonal moves
+          allMoves = allMoves.concat(perpetuateMove(source, 1, 1));
+          allMoves = allMoves.concat(perpetuateMove(source, -1, -1));
+          allMoves = allMoves.concat(perpetuateMove(source, 1, -1));
+          allMoves = allMoves.concat(perpetuateMove(source, -1, 1));
+
+          //cardinal moves
+          allMoves = allMoves.concat(perpetuateMove(source, 1, 0));
+          allMoves = allMoves.concat(perpetuateMove(source, -1, 0));
+          allMoves = allMoves.concat(perpetuateMove(source, 0, -1));
+          allMoves = allMoves.concat(perpetuateMove(source, 0, 1));
+      }
+       return allMoves;
+   };
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
     name += 'Queen on ' + source;
+    this.toString = function(){return name;};
 
     this.symbol = 'Q';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
@@ -76,11 +121,11 @@ function Queen(source, isWhite)
 function King(source, isWhite, board)
 {
     this.getAllMoves = function(){return [];};  //check board for castling
-    this.toString = function(){return name;};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
     name += 'King on ' + source;
+    this.toString = function(){return name;};
 
     this.symbol = 'K';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
@@ -88,18 +133,19 @@ function King(source, isWhite, board)
 function Pawn(source, isWhite, board)
 {
     this.getAllMoves = function(){return [];};  //check board for en passant and capture
-    this.toString = function(){return name;};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
     name += 'Pawn on ' + source;
+    this.toString = function(){return name;};
 
     this.symbol = 'P';
     if(!isWhite) this.symbol = this.symbol.toLowerCase();
 }
 
 /**Returns an array of moves in the direction indicated (source excluded).
-Eg: ('a1', 1, 1) => ['b2', 'c3', ..., 'h8'];*/
+Eg: ('a1', 1, 1) => ['b2', 'c3', ..., 'h8'];
+Eg: ('a1', -1, 0) => [];*/
 function perpetuateMove(source, fileMovement, rankMovement)
 {
     var moves = [];
