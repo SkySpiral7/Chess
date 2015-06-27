@@ -176,6 +176,8 @@ function Board(passedTurnIndicator)
              this.setPiece(destination, promotedTo.toLowerCase());
          }
       }
+       else if(isWhitesTurn && destination[1] === '8') this.error('P' + destination + ' must be promoted. source=' + source);
+       else if(!isWhitesTurn && destination[1] === '1') this.error('p' + destination + ' must be promoted. source=' + source);
    };
    this.isEnPassantOccurring = function(source, destination)
    {
@@ -282,3 +284,4 @@ function Board(passedTurnIndicator)
        return JSON.stringify(boardSquares).replace(/\],/g, '],\n');
    };
 }
+//TODO: create a move object so I don't have to keep checking for 'KC', promotion etc

@@ -40,15 +40,20 @@ function Piece(source, isWhite)
     /**Array of destinations that can be moved to and might contain: 'KC', 'QC', 'EN'.
     Doesn't account for check otherwise only legal moves are returned.*
     this.getAllMoves = function(){return ['G2', 'KC'];};
-    this.toString = function(){return 'Black King on A5'};
-    /**Ok so this.symbol could be mutated but don't do that*
-    if(isWhite) this.symbol = 'P';
-    else this.symbol = 'p';
+    this.toString = function(){return 'Black King on A5';};
+    this.getSource = function(){return source;};
+    this.isWhite = function(){return isWhite;};
+
+    if(isWhite) this.getSymbol = function(){return 'P';};
+    else this.getSymbol = function(){return 'p';};
 }
 */
 function Rook(source, isWhite, board)
 {
     source = source.toUpperCase();
+    this.getSource = function(){return source;};
+    this.isWhite = function(){return isWhite;};
+
     var allMoves;
    this.getAllMoves = function()
    {
@@ -72,12 +77,15 @@ function Rook(source, isWhite, board)
     name += 'Rook on ' + source;
     this.toString = function(){return name;};
 
-    this.symbol = 'R';
-    if(!isWhite) this.symbol = this.symbol.toLowerCase();
+    if(isWhite) this.getSymbol = function(){return 'R';};
+    else this.getSymbol = function(){return 'r';};
 }
 function Knight(source, isWhite, board)
 {
     source = source.toUpperCase();
+    this.getSource = function(){return source;};
+    this.isWhite = function(){return isWhite;};
+
     var allMoves;
    this.getAllMoves = function()
    {
@@ -120,11 +128,14 @@ function Knight(source, isWhite, board)
     name += 'Knight on ' + source;
     this.toString = function(){return name;};
 
-    this.symbol = 'N';
-    if(!isWhite) this.symbol = this.symbol.toLowerCase();
+    if(isWhite) this.getSymbol = function(){return 'N';};
+    else this.getSymbol = function(){return 'n';};
 }
 function Bishop(source, isWhite, board)
 {
+    this.getSource = function(){return source;};
+    this.isWhite = function(){return isWhite;};
+
     var allMoves;
    this.getAllMoves = function()
    {
@@ -137,11 +148,14 @@ function Bishop(source, isWhite, board)
     name += 'Bishop on ' + source;
     this.toString = function(){return name;};
 
-    this.symbol = 'B';
-    if(!isWhite) this.symbol = this.symbol.toLowerCase();
+    if(isWhite) this.getSymbol = function(){return 'B';};
+    else this.getSymbol = function(){return 'b';};
 }
 function Queen(source, isWhite, board)
 {
+    this.getSource = function(){return source;};
+    this.isWhite = function(){return isWhite;};
+
     var allMoves;
    this.getAllMoves = function()
    {
@@ -159,12 +173,15 @@ function Queen(source, isWhite, board)
     name += 'Queen on ' + source;
     this.toString = function(){return name;};
 
-    this.symbol = 'Q';
-    if(!isWhite) this.symbol = this.symbol.toLowerCase();
+    if(isWhite) this.getSymbol = function(){return 'Q';};
+    else this.getSymbol = function(){return 'q';};
 }
 function King(source, isWhite, board)
 {
     source = source.toUpperCase();
+    this.getSource = function(){return source;};
+    this.isWhite = function(){return isWhite;};
+
     var allMoves;
    this.getAllMoves = function()
    {
@@ -201,12 +218,15 @@ function King(source, isWhite, board)
     name += 'King on ' + source;
     this.toString = function(){return name;};
 
-    this.symbol = 'K';
-    if(!isWhite) this.symbol = this.symbol.toLowerCase();
+    if(isWhite) this.getSymbol = function(){return 'K';};
+    else this.getSymbol = function(){return 'k';};
 }
 function Pawn(source, isWhite, board)
 {
     source = source.toUpperCase();
+    this.getSource = function(){return source;};
+    this.isWhite = function(){return isWhite;};
+
     var allMoves;
    this.getAllMoves = function()
    {
@@ -268,6 +288,6 @@ function Pawn(source, isWhite, board)
     name += 'Pawn on ' + source;
     this.toString = function(){return name;};
 
-    this.symbol = 'P';
-    if(!isWhite) this.symbol = this.symbol.toLowerCase();
+    if(isWhite) this.getSymbol = function(){return 'P';};
+    else this.getSymbol = function(){return 'p';};
 }

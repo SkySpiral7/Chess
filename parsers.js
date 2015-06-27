@@ -323,7 +323,7 @@ Parse.FenBoard = function(game, board, text)
     //although not very clean this is better than string manipulation
     //I also thought it was better than doing inside the loop: if(/[2-8]/) loop: board.setPieceByIndex(fileIndex, rankIndex, '1');
 
-    var boardRegex = /^(?:[KQBNRPkqbnrp8]{8}\/){7}[KQBNRPkqbnrp8]{8}$/;
+    var boardRegex = /^(?:[KQBNRPkqbnrp1]{8}\/){7}[KQBNRPkqbnrp1]{8}$/;
    if (!boardRegex.test(text))
    {
        var message = 'Invalid board: ' + originalText;

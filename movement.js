@@ -76,3 +76,28 @@ function isKingInCheck(board, isWhitesTurn)
    }
     return false;
 }
+
+function getAllLegalMoves(board, isWhitesTurn)
+{
+    //TODO: castling, en passant, promotions
+    board.changeState({white: {canKingsCastle: false, canQueensCastle: false},
+       black: {canKingsCastle: false, canQueensCastle: false}, enPassantSquare: '-'});
+    var allLegalMoves = [];
+    var allPieces = getAllPieces(board, isWhitesTurn);
+   for (var pieceIndex = 0; pieceIndex < allPieces.length; pieceIndex++)
+   {
+       var allMoves = allPieces[pieceIndex].getAllMoves();
+      for (var moveIndex = 0; moveIndex < allMoves.length; moveIndex++)
+      {
+          var result = board.copy();
+          result.move(allPieces[pieceIndex].getSource(), allMoves[moveIndex]);
+          if(!isKingInCheck(result, isWhitesTurn)) allLegalMoves.push(allPieces[pieceIndex].getSource() + allMoves[moveIndex]);
+      }
+   }
+    return allLegalMoves;
+}
+/*Test that passed:
+var board = new Board(true);
+Parse.FenBoard(null, board, 'q7/8/8/8/8/8/8/1K6');
+return JSON.stringify(getAllLegalMoves(board, true));
+*/
