@@ -321,7 +321,7 @@ Parse.FenBoard = function(game, board, text)
     text = text.replace(/7/g, '1111111');
     text = text.replace(/8/g, '11111111');
     //although not very clean this is better than string manipulation
-    //I also thought it was better than doing inside the loop: if(/[2-8]/) loop: board.setPieceIndex(fileIndex, rankIndex, '1');
+    //I also thought it was better than doing inside the loop: if(/[2-8]/) loop: board.setPieceByIndex(fileIndex, rankIndex, '1');
 
     var boardRegex = /^(?:[KQBNRPkqbnrp8]{8}\/){7}[KQBNRPkqbnrp8]{8}$/;
    if (!boardRegex.test(text))
@@ -338,7 +338,7 @@ Parse.FenBoard = function(game, board, text)
    {
       for (var fileIndex = 0; fileIndex < rankArray[rankIndex].length; fileIndex++)
       {
-          board.setPieceIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
+          board.setPieceByIndex(fileIndex, rankIndex, rankArray[rankIndex][fileIndex]);
       }
    }
 }
@@ -412,7 +412,7 @@ Parse.BinaryCompressedFenBoard = function(beforeBoard, byteArray)
    {
       for (var fileIndex = 0; fileIndex < 8; fileIndex++)
       {
-          afterBoard.setPieceIndex(fileIndex, rankIndex, squareFlatIterator.next());
+          afterBoard.setPieceByIndex(fileIndex, rankIndex, squareFlatIterator.next());
       }
    }
     resetState(beforeBoard, afterBoard);

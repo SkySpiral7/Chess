@@ -256,18 +256,18 @@ function Board(passedTurnIndicator)
    this.setPiece = function(coord, symbol)
    {
        var indexies = coordToIndex(coord);
-       this.setPieceIndex(indexies.fileIndex, indexies.rankIndex, symbol);
+       this.setPieceByIndex(indexies.fileIndex, indexies.rankIndex, symbol);
    };
-   this.setPieceIndex = function(fileIndex, rankIndex, symbol)
+   this.setPieceByIndex = function(fileIndex, rankIndex, symbol)
    {
        boardSquares[fileIndex][rankIndex] = symbol;
    };
    this.getPiece = function(coord)
    {
        var indexies = coordToIndex(coord);
-       return this.getPieceIndex(indexies.fileIndex, indexies.rankIndex);
+       return this.getPieceByIndex(indexies.fileIndex, indexies.rankIndex);
    };
-   this.getPieceIndex = function(fileIndex, rankIndex)
+   this.getPieceByIndex = function(fileIndex, rankIndex)
    {
        return boardSquares[fileIndex][rankIndex];
    };

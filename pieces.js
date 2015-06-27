@@ -20,7 +20,9 @@ javascript can't have real interfaces because it would compile anyway.
 /**All pieces are immutable. Therefore the piece can't be moved after creation.*
 function Piece(source, isWhite)
 {
-    /**Excludes destinations that are not on the board. Includes illegal moves such as capturing your own king.*
+    /**Array of destinations that can be moved to and might contain: 'KC', 'QC', 'EN'.
+    Excludes destinations that are not on the board.
+    Includes illegal moves such as capturing your own king or moving through a piece.*
     this.getAllMoves = function(){return ['b7', 'g3'];};
     this.toString = function(){return 'Black King on A5'};
     if(isWhite) this.symbol = 'P';
@@ -29,14 +31,21 @@ function Piece(source, isWhite)
 */
 function Rook(source, isWhite, board)
 {
+    source = source.toUpperCase();
     var allMoves;
    this.getAllMoves = function()
    {
       if (allMoves == null)
       {
           allMoves = [];
-          //TODO: check board for castling
           allMoves = allMoves.concat(movementType.cardinal(source));
+
+          //castling:
+          //the source is checked so that only the correct rook will return QC etc
+          if(isWhite && source === 'H1' && board.getState().white.canKingsCastle) allMoves.push('KC');
+          else if(!isWhite && source === 'H8' && board.getState().black.canKingsCastle) allMoves.push('KC');
+          else if(isWhite && source === 'A1' && board.getState().white.canQueensCastle) allMoves.push('QC');
+          else if(!isWhite && source === 'H1' && board.getState().black.canQueensCastle) allMoves.push('QC');
       }
        return allMoves;
    };
@@ -143,7 +152,6 @@ function King(source, isWhite, board)
    {
       if (allMoves == null)
       {
-          //TODO: check board for castling
           allMoves = [];
           var indexies = coordToIndex(source);
 
@@ -158,6 +166,12 @@ function King(source, isWhite, board)
           if(source[0] !== 'A' && source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex - 1, indexies.rankIndex + 1));
           if(source[0] !== 'H' && source[1] !== '1') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex - 1));
           if(source[0] !== 'H' && source[1] !== '8') allMoves.push(indexToCoord(indexies.fileIndex + 1, indexies.rankIndex + 1));
+
+          //castling:
+          if(isWhite && board.getState().white.canKingsCastle) allMoves.push('KC');
+          else if(!isWhite board.getState().black.canKingsCastle) allMoves.push('KC');
+          if(isWhite && board.getState().white.canQueensCastle) allMoves.push('QC');
+          else if(!isWhite && board.getState().black.canQueensCastle) allMoves.push('QC');
       }
        return allMoves;
    };
@@ -172,24 +186,38 @@ function King(source, isWhite, board)
 }
 function Pawn(source, isWhite, board)
 {
+    source = source.toUpperCase();
     var allMoves;
    this.getAllMoves = function()
    {
       if (allMoves == null)
       {
-          //TODO: check board for en passant and capture
           allMoves = [];
           //don't need to check the edge of the board: (isWhite && source[1] === '8') and (!isWhite && source[1] === '1')
           //because promotion is required
           var indexies = coordToIndex(source);
 
           //normal move:
-          if(isWhite) allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex + 1));
-          else allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex - 1));
+          var normalMoveRank;
+          if(isWhite) normalMoveRank = indexies.rankIndex + 1;
+          else normalMoveRank = indexies.rankIndex - 1;
+          allMoves.push(indexToCoord(indexies.fileIndex, normalMoveRank));
 
           //double move:
           if(isWhite && source[1] === '2') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex + 2));
           else if(!isWhite && source[1] === '7') allMoves.push(indexToCoord(indexies.fileIndex, indexies.rankIndex - 2));
+
+          //normal capture:
+          if(source[0] !== 'A' && board.getPieceByIndex(indexies.fileIndex - 1, normalMoveRank) !== '1')
+                             allMoves.push(indexToCoord(indexies.fileIndex - 1, normalMoveRank));
+          if(source[0] !== 'H' && board.getPieceByIndex(indexies.fileIndex + 1, normalMoveRank) !== '1')
+                             allMoves.push(indexToCoord(indexies.fileIndex + 1, normalMoveRank));
+
+          //en passant:
+          if(source[0] !== 'A' && indexToCoord(indexies.fileIndex - 1, normalMoveRank) === board.getState().enPassantSquare)
+             allMoves.push('EN');
+          else if(source[0] !== 'H' && indexToCoord(indexies.fileIndex + 1, normalMoveRank) === board.getState().enPassantSquare)
+             allMoves.push('EN');
       }
        return allMoves;
    };
