@@ -17,8 +17,19 @@ function indexToCoord(fileIndex, rankIndex)
     return coord;
 }
 
-function findSymbol(board, symbol)
+function findKing(board, isWhitesTurn)
 {
+    var symbol = 'K';
+    if(!isWhitesTurn) symbol = 'k';
+    var boardSquares = board.getBoardSquares();
+   for (var fileIndex = 0; fileIndex < boardSquares.length; fileIndex++)
+   {
+      for (var rankIndex = 0; rankIndex < boardSquares[fileIndex].length; rankIndex++)
+      {
+          if(boardSquares[fileIndex][rankIndex] === symbol) return indexToCoord(fileIndex, rankIndex);
+      }
+   }
+    board.error('King not found');
 }
 
 /**Returns an array of every coordinate that is difference between the 2 boards.*/

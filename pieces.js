@@ -1,5 +1,18 @@
 function getAllPieces(board, isWhitesTurn)
 {
+    var pieces = [];
+    var boardSquares = board.getBoardSquares();
+   for (var fileIndex = 0; fileIndex < boardSquares.length; fileIndex++)
+   {
+      for (var rankIndex = 0; rankIndex < boardSquares[fileIndex].length; rankIndex++)
+      {
+          var symbol = boardSquares[fileIndex][rankIndex];
+          if(symbol !== '1' && isWhitesTurn === isPieceWhite(symbol))
+             pieces.push(symbolToPiece(symbol, indexToCoord(fileIndex, rankIndex), board));
+      }
+   }
+    return pieces;
+    function isPieceWhite(symbol){return (symbol === symbol.toUpperCase());};
 }
 
 function symbolToPiece(originalSymbol, source, board)

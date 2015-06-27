@@ -65,14 +65,13 @@ function filterFriendlyFire(board, destinations, isWhite)
 
 function isKingInCheck(board, isWhitesTurn)
 {
-    var kingSource;
-    if(isWhitesTurn) kingSource = findSymbol(board, 'K');
-    else kingSource = findSymbol(board, 'k');
+    var kingSource = findKing(board, isWhitesTurn);
     var allPieces = getAllPieces(board, !isWhitesTurn);
 
    for (var i = 0; i < allPieces.length; i++)
    {
        var allMoves = allPieces[i].getAllMoves();
+       //don't need to filter out KC, QC, EN because they don't cause check
        if(allMoves.indexOf(kingSource) !== -1) return true;
    }
     return false;
