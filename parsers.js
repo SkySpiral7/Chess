@@ -243,8 +243,8 @@ Parse.FriendlyCoordinateNotationMove = function(game, text)
     var promotedTo = regexResult[5];  //might be undefined
 
     var actualPieceMoved = board.getPiece(source).toUpperCase();
-    if(actualPieceMoved === '1') game.error('Move was ' + text + ' but that square is empty.');
-    if(pieceMoved !== actualPieceMoved) game.error('Move was ' + text + ' but the board\'s piece is ' + actualPieceMoved);
+    if(actualPieceMoved === '1' && validation !== validationLevel.off) game.error('Move was ' + text + ' but that square is empty.');
+    if(pieceMoved !== actualPieceMoved && validation !== validationLevel.off) game.error('Move was ' + text + ' but the board\'s piece is ' + actualPieceMoved);
 
     if(captured === '') captured = '1';
    else
@@ -256,7 +256,7 @@ Parse.FriendlyCoordinateNotationMove = function(game, text)
     game.move(source, destination, promotedTo);
 
     var actualCapturedPiece = board.getState().capturedPiece.toUpperCase();
-   if (captured !== actualCapturedPiece)
+   if (captured !== actualCapturedPiece && validation !== validationLevel.off)
    {
        if(actualCapturedPiece === '1') game.error('Move was ' + text + ' but nothing was captured.');
        game.error('Move was ' + text + ' but ' + actualCapturedPiece + ' was captured.');
@@ -268,12 +268,14 @@ moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8
 It returns a board so that it can be used for starting positions.*/
 Parse.ShortenedFenRow = function(game, text)
 {
+    if(!moveTextRegex[Parse.ShortenedFenRow].test(text)) throw new SyntaxError(text + ' is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]);
+
     var hasBeforeBoard = (game !== undefined && game !== null);
     var beforeBoard, afterBoard;
 
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
     var nonEmptyCastling = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|[KQkq]{1,4})(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;
-   if (!nonEmptyCastling.test(text))
+   if (!nonEmptyCastling.test(text) && validation !== validationLevel.off)
    {
        var message = 'Too many spaces: ' + text;
        //Verbose error message: Castling ability can't be empty if provided (or there was an extra space)

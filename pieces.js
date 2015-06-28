@@ -40,6 +40,7 @@ function Piece(source, isWhite)
     /**Array of destinations that can be moved to and might contain: 'KC', 'QC', 'EN'.
     Doesn't account for check otherwise only legal moves are returned.*
     this.getAllMoves = function(){return ['G2', 'KC'];};
+    this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
     this.toString = function(){return 'Black King on A5';};
     this.getSource = function(){return source;};
     this.isWhite = function(){return isWhite;};
@@ -71,6 +72,7 @@ function Rook(source, isWhite, board)
       }
        return allMoves;
    };
+    this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -122,6 +124,7 @@ function Knight(source, isWhite, board)
       }
        return allMoves;
    };
+    this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -142,6 +145,7 @@ function Bishop(source, isWhite, board)
        if(allMoves == null) allMoves = movementType.diagonal(source, isWhite, board);
        return allMoves;
    };
+    this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -167,6 +171,7 @@ function Queen(source, isWhite, board)
       }
        return allMoves;
    };
+    this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -212,6 +217,7 @@ function King(source, isWhite, board)
       }
        return allMoves;
    };
+    this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';
@@ -282,6 +288,7 @@ function Pawn(source, isWhite, board)
       }
        return allMoves;
    };
+    this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
 
     var name = 'Black ';
     if(isWhite) name = 'White ';

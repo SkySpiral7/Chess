@@ -109,20 +109,35 @@ function Board(passedTurnIndicator)
    };
     this.isWhitesTurn = function(){return isWhitesTurn;};
     this.switchTurns = function(){isWhitesTurn = !isWhitesTurn;};
+   this.endTurn = function()
+   {
+      if (validation === validationLevel.full && isKingInCheck(this, isWhitesTurn))
+      {
+          if(isWhitesTurn) this.error('White ended turn in check.');
+          this.error('Black ended turn in check.');
+      }
+       this.switchTurns();
+   }
    this.move = function(source, destination, promotedTo)
    {
        var pieceMoved = this.getPiece(source);
 
        //perform some simple move validation
-       if(pieceMoved === '1') this.error('Empty square ' + source + ' can\'t be moved. destination=' + destination);
-       if(isWhitesTurn && (/^[rnbqkp]$/).test(pieceMoved)) this.error('White can\'t move black\'s piece. coordinates: ' + source + destination);
-       if(!isWhitesTurn && (/^[RNBQKP]$/).test(pieceMoved)) this.error('Black can\'t move white\'s piece. coordinates: ' + source + destination);
-       if(pieceMoved.toUpperCase() !== 'P' && promotedTo !== undefined) this.error('Piece ' + pieceMoved + ' can\'t be promoted to ' + promotedTo + '. coordinates: ' + source + destination);
+      if (validation !== validationLevel.off)
+      {
+          if(pieceMoved === '1') this.error('Empty square ' + source + ' can\'t be moved. destination=' + destination);
+          if(isWhitesTurn && (/^[rnbqkp]$/).test(pieceMoved)) this.error('White can\'t move black\'s piece. coordinates: ' + source + destination);
+          if(!isWhitesTurn && (/^[RNBQKP]$/).test(pieceMoved)) this.error('Black can\'t move white\'s piece. coordinates: ' + source + destination);
+          if(pieceMoved.toUpperCase() !== 'P' && promotedTo !== undefined) this.error('Piece ' + pieceMoved + ' can\'t be promoted to ' + promotedTo + '. coordinates: ' + source + destination);
+      }
+       if(validation === validationLevel.full && !symbolToPiece(pieceMoved, source, this).isMoveLegal(destination))
+          this.error(pieceMoved + source + ' can\'t legally move to ' + destination);
 
        //done below errors so that the error message will have same case. ok since the error checking doesn't need them
        source = source.toLowerCase();
        destination = destination.toLowerCase();
 
+       //TODO: it is currently possible to perform a castle through check (validationLevel.full)
        if(this.isKingCastling(source, destination)) this.performKingsCastle();
        else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
        else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source);
@@ -134,7 +149,7 @@ function Board(passedTurnIndicator)
           this.simpleMove(source, destination);
           this.castlingAbilityLoss(pieceMoved, source);
           if(pieceMoved === 'p' || pieceMoved === 'P') this.handlePawnMove(source, destination, promotedTo);
-          this.switchTurns();
+          this.endTurn();
       }
    };
    this.simpleMove = function(source, destination)
@@ -166,17 +181,17 @@ function Board(passedTurnIndicator)
       {
          if (isWhitesTurn)
          {
-             if(destination[1] !== '8') this.error('P' + destination + ' can\'t be promoted to ' + promotedTo + '. source=' + source);
+             if(destination[1] !== '8' && validation !== validationLevel.off) this.error('P' + destination + ' can\'t be promoted to ' + promotedTo + '. source=' + source);
              this.setPiece(destination, promotedTo.toUpperCase());
          }
          else
          {
-             if(destination[1] !== '1') this.error('p' + destination + ' can\'t be promoted to ' + promotedTo + '. source=' + source);
+             if(destination[1] !== '1' && validation !== validationLevel.off) this.error('p' + destination + ' can\'t be promoted to ' + promotedTo + '. source=' + source);
              this.setPiece(destination, promotedTo.toLowerCase());
          }
       }
-       else if(isWhitesTurn && destination[1] === '8') this.error('P' + destination + ' must be promoted. source=' + source);
-       else if(!isWhitesTurn && destination[1] === '1') this.error('p' + destination + ' must be promoted. source=' + source);
+       else if(isWhitesTurn && destination[1] === '8' && validation !== validationLevel.off) this.error('P' + destination + ' must be promoted. source=' + source);
+       else if(!isWhitesTurn && destination[1] === '1' && validation !== validationLevel.off) this.error('p' + destination + ' must be promoted. source=' + source);
    };
    this.isEnPassantOccurring = function(source, destination)
    {
@@ -201,7 +216,7 @@ function Board(passedTurnIndicator)
    };
    this.performEnPassant = function(source)
    {
-       if(enPassantSquare === '-') this.error('An en passant can\'t be performed. source=' + source);
+       if(enPassantSquare === '-' && validation !== validationLevel.off) this.error('An en passant can\'t be performed. source=' + source);
        var destination = enPassantSquare;
        enPassantSquare = '-';
        capturedPiece = 'EN';
@@ -212,7 +227,7 @@ function Board(passedTurnIndicator)
        else deadPawnSquare = destination[0] + '4';
 
        this.setPiece(deadPawnSquare, '1');
-       this.switchTurns();
+       this.endTurn();
    };
    this.performKingsCastle = function()
    {
@@ -220,19 +235,19 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
-          if(!white.canKingsCastle) this.error('White can\'t perform a King\'s castle.');
+          if(!white.canKingsCastle && validation !== validationLevel.off) this.error('White can\'t perform a King\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h1', 'f1');  //moves the rook
           this.simpleMove('e1', 'g1');  //moves the king
       }
       else
       {
-          if(!black.canKingsCastle) this.error('Black can\'t perform a King\'s castle.');
+          if(!black.canKingsCastle && validation !== validationLevel.off) this.error('Black can\'t perform a King\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h8', 'f8');  //moves the rook
           this.simpleMove('e8', 'g8');  //moves the king
       }
-       this.switchTurns();
+       this.endTurn();
    };
    this.performQueensCastle = function()
    {
@@ -240,19 +255,19 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
-          if(!white.canQueensCastle) this.error('White can\'t perform a Queen\'s castle.');
+          if(!white.canQueensCastle && validation !== validationLevel.off) this.error('White can\'t perform a Queen\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a1', 'd1');  //moves the rook
           this.simpleMove('e1', 'c1');  //moves the king
       }
       else
       {
-          if(!black.canQueensCastle) this.error('Black can\'t perform a Queen\'s castle.');
+          if(!black.canQueensCastle && validation !== validationLevel.off) this.error('Black can\'t perform a Queen\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a8', 'd8');  //moves the rook
           this.simpleMove('e8', 'c8');  //moves the king
       }
-       this.switchTurns();
+       this.endTurn();
    };
    this.setPiece = function(coord, symbol)
    {
