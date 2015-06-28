@@ -22,13 +22,26 @@ var Parse = {};
 Parse.VariableGameNotation = function(text)
 {
     var tagReturnValue = Parse.VariableGameNotationTagSection(text);
-    //TODO: SetUp tag not yet supported
     text = tagReturnValue.moveTextSection;
+    var initialBoard = handleSetUp(tagReturnValue.allTags.SetUp);
     var parser = findParser(tagReturnValue.allTags.MoveFormat);
     if(tagReturnValue.isBinary) return parser(stringToAsciiByteArray(text));
     var moveArray = Parse.VariableGameNotationMoveTextSection(text, moveTextRegex[parser]);
-    return gameCreation(parser, moveArray);
+    return gameCreation(initialBoard, parser, moveArray);
 
+   function handleSetUp(setUpTagValue)
+   {
+       if(setUpTagValue === undefined) return;  //will pass undefined into Game
+       var format = 'SFEN';  //default
+      if (setUpTagValue.indexOf(':') !== -1)
+      {
+          //remove the first : and everything after it
+          format = setUpTagValue.replace(/:.*$/, '').toUpperCase();
+          setUpTagValue = setUpTagValue.substring(5);
+      }
+       if(format === 'SFEN') return Parse.ShortenedFenRow(undefined, setUpTagValue);
+       else throw new Error('SetUp Format ' + format + ' is not supported.');
+   }
    function findParser(formatFullString)
    {
        var format = formatFullString.replace(/:.*$/, '').toUpperCase();  //remove the first : and everything after it
@@ -39,9 +52,9 @@ Parse.VariableGameNotation = function(text)
        else if(format === 'SFEN') return Parse.ShortenedFenRow;
        else throw new Error('MoveFormat ' + formatFullString + ' is not supported.');
    }
-   function gameCreation(parser, moveArray)
+   function gameCreation(initialBoard, parser, moveArray)
    {
-       var game = new Game();
+       var game = new Game(initialBoard);
       for (var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
       {
           parser(game, moveArray[moveIndex]);
@@ -252,7 +265,7 @@ Parse.FriendlyCoordinateNotationMove = function(game, text)
 moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?(?:#[+#]?)?/i
 
 /**This parses the piece locations and the information that follows.
-It still returns a board so that it might be used for starting positions.*/
+It returns a board so that it can be used for starting positions.*/
 Parse.ShortenedFenRow = function(game, text)
 {
     var hasBeforeBoard = (game !== undefined && game !== null);
@@ -288,20 +301,20 @@ Parse.ShortenedFenRow = function(game, text)
     var newState = {};
     if((/^[WBwb]$/).test(sections[0])) newState.isWhitesTurn = (sections.shift().toLowerCase() === 'w');
 
-   if (sections[0] !== undefined && !(/^(?:-|[KQkq]{1,4})$/).test(sections[0]))
+   if (sections[0] !== undefined && (/^(?:-|[KQkq]{1,4})$/).test(sections[0]))
    {
        //newState.white.canKingsCastle = (sections[0][0] === 'K') it's the only one that can do that but I decided not to in order to keep them lined up
        newState.white = {canKingsCastle: (sections[0].indexOf('K') !== -1), canQueensCastle: (sections[0].indexOf('Q') !== -1)};
        newState.black = {canKingsCastle: (sections[0].indexOf('k') !== -1), canQueensCastle: (sections[0].indexOf('q') !== -1)};
        //if sections[0] === '-' then everything is already set to false
        sections.shift();
+
+       if(sections[0] !== undefined && (/^[A-H][1-8]$/i).test(sections[0])) newState.enPassantSquare = sections.shift().toUpperCase();
+       else if(sections[0] === '-') sections.shift();  //newState.enPassantSquare is already set to 1
    }
 
-    if(sections[0] !== undefined && (/^[A-H][1-8]$/i).test(sections[0])) newState.enPassantSquare = sections.shift().toUpperCase();
-    else if(sections[0] === '-') sections.shift();  //newState.enPassantSquare is already set to 1
-    //TODO: doesn't detect +#
-
     if(hasBeforeBoard) resetState(beforeBoard, afterBoard, newState);
+    else afterBoard.changeState(newState);
     return afterBoard;
 }
 moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|K?Q?k?q?)(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?/;
@@ -389,7 +402,7 @@ Parse.BinaryCompressedFenGame = function(byteArray)
        game.addBoard(Parse.BinaryCompressedFenBoard(game.getBoard(), byteArray.splice(0, 32)));
    }
     if(byteArray.length !== 1) game.error('Expecting length 1 actual: 0');
-    if(byteArray[0] !== 0x88) game.error('Missing game termination marker. Got: 0x' + byteArray[0].toString(16));
+    if(byteArray[0] !== 0x88) game.error('Missing game termination marker. Got: 0x' + byteArray[0].toString(16).toUpperCase());
     return game;
 }
 

@@ -66,6 +66,7 @@ function filterFriendlyFire(board, destinations, isWhite)
 function isKingInCheck(board, isWhitesTurn)
 {
     var kingSource = findKing(board, isWhitesTurn);
+    //TODO: make this faster by searching the queen's movement from the king (then the knight then king)
     var allPieces = getAllPieces(board, !isWhitesTurn);
 
    for (var i = 0; i < allPieces.length; i++)
@@ -108,4 +109,14 @@ function getAllLegalMoves(board, isWhitesTurn)
       }
    }
     return allLegalMoves;
+}
+
+//TODO: consider having pieces.getAllMoves return these. But would only be used by getAllLegalMoves
+//also this should at least have a toString.
+function Move(target, source, destination, promotedTo)
+{
+    if(source === 'KC') return function(){target.performKingsCastle();};
+    if(source === 'QC') return function(){target.performQueensCastle();};
+    if(destination === 'EN') return function(){target.performEnPassant(source);};
+    return function(){target.move(source, destination, promotedTo);};
 }

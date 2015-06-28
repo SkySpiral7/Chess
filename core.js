@@ -1,6 +1,8 @@
-function Game()
+function Game(initialBoard)
 {
-    var boardArray = [new Board(true)];  //game starts with only initial starting positions on white's turn
+    //game normally starts with only default starting positions on white's turn:
+    if(initialBoard == null) initialBoard = new Board(true);
+    var boardArray = [initialBoard];
     //var isWhitesTurn = ((boardArray.length & 1) === 1);  //if odd
     //var fullMoveCount = Math.floor((boardArray.length - 1) / 2);
     //all state info is stored in board so that it can change each move
@@ -78,12 +80,9 @@ function Board(passedTurnIndicator)
    this.changeState = function(stateChange)
    {
        var newState = this.getState();  //default to current state
-      for (var state in stateChange)
-      {
-          if(stateChange.hasOwnProperty(state) && typeof(stateChange[state]) !== 'object') newState[state] = stateChange[state];
-          //don't shallow copy white/black because it would delete k/q if not passed in
-      }
-       //manually copy white and black
+       if(stateChange.isWhitesTurn !== undefined) newState.isWhitesTurn = stateChange.isWhitesTurn;
+       if(stateChange.enPassantSquare !== undefined) newState.enPassantSquare = stateChange.enPassantSquare;
+       if(stateChange.capturedPiece !== undefined) newState.capturedPiece = stateChange.capturedPiece;
       if (stateChange.white !== undefined)
       {
           if(stateChange.white.canKingsCastle !== undefined) newState.white.canKingsCastle = stateChange.white.canKingsCastle;
@@ -283,5 +282,17 @@ function Board(passedTurnIndicator)
    {
        return JSON.stringify(boardSquares).replace(/\],/g, '],\n');
    };
+   this.equals = function(otherBoard)
+   {
+       if(!(otherBoard instanceof Board)) return false;
+       var otherState = this.getState();
+       if(isWhitesTurn !== otherState.isWhitesTurn) return false;
+       if(enPassantSquare !== otherState.enPassantSquare) return false;
+       if(capturedPiece !== otherState.capturedPiece) return false;
+       if(white.canKingsCastle !== otherState.white.canKingsCastle) return false;
+       if(white.canQueensCastle !== otherState.white.canQueensCastle) return false;
+       if(black.canKingsCastle !== otherState.black.canKingsCastle) return false;
+       if(black.canQueensCastle !== otherState.black.canQueensCastle) return false;
+       return (this.toString() === otherBoard.toString());
+   };
 }
-//TODO: create a move object so I don't have to keep checking for 'KC', promotion etc

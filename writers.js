@@ -25,6 +25,9 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
     var gameFormat = allTags.GameFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
     if(gameFormat !== 'VGN') throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
 
+    if(allTags.SetUp == null && !game.getBoard(0).equals(new Board(true)))
+       allTags.SetUp = 'FEN:' + Write.FenRow(game, 0);
+
     var writer;
     var moveFormat = allTags.MoveFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
     if(moveFormat === 'BCCF') writer = Write.BinaryCompressedCoordinateFormatMove;
@@ -52,24 +55,29 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
    }
    function writeMoveTextSection(game, gameText, gameTerminator, isBinary)
    {
-       //the move text section will correctly be empty if there is only 1 board (since the SetUp tag isn't supported)
-          //although this function does allow you to pass in the SetUp tag, that isn't how it should be
+       //the move text section will correctly be empty if there is only 1 board (since the SetUp tag was already handled)
       if (isBinary)
       {
          for (var i=1; i < game.getBoardArray().length; i++)
          {
-             gameText += writer(game, i);  //white's move
-             i++;
-             if(i < game.getBoardArray().length) gameText += writer(game, i);  //black's move
+             gameText += writer(game, i);  //white or black move
          }
           return writer(game, i, gameTerminator, gameText);  //each binary writer handles game termination differently
       }
 
       //else if plain text:
-      for (var i=1; i < game.getBoardArray().length; i++)
+       var i = 1;
+      if (!game.getBoard(0).isWhitesTurn())
+      {
+          //if started on black's turn
+          gameText += '1.5 ';  //black's move #
+          gameText += writer(game, 1) + '\r\n';  //black's move
+          i++;
+      }
+      for (; i < game.getBoardArray().length; i++)
       {
           gameText += Math.floor((i+1)/2) + '. ';  //white's move #
-          gameText += writer(game, i) + ' ';  //white's move
+          gameText += writer(game, i) + ' ';  //white's move (and space before black's move or terminator)
           i++;
           if(i < game.getBoardArray().length) gameText += writer(game, i) + '\r\n';  //black's move
       }
@@ -134,7 +142,7 @@ Write.FenBoard = function(board)
 
 Write.FriendlyCoordinateNotationMove = function(game, index)
 {
-    var beforeBoard = game.getBoard(index-1), afterBoard = game.getBoard(index);
+    var beforeBoard = game.getBoard(index - 1), afterBoard = game.getBoard(index);
     var move = findBoardMove(beforeBoard, afterBoard);
     if(move === 'KC' || move === 'QC') return move;
 
@@ -146,7 +154,10 @@ Write.FriendlyCoordinateNotationMove = function(game, index)
     else if(capturedPiece !== '1') result += 'x' + capturedPiece;
 
     if(move.promotedTo !== undefined) result += '=' + move.promotedTo;
-    //TODO: doesn't detect +#
+
+    if(isKingInCheck(afterBoard, afterBoard.isWhitesTurn())) result += '+';
+    if(getAllLegalMoves(afterBoard, afterBoard.isWhitesTurn()).length === 0) result += '#';  //if game is over
+
     return result.toUpperCase();
 }
 
