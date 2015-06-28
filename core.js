@@ -137,7 +137,6 @@ function Board(passedTurnIndicator)
        source = source.toLowerCase();
        destination = destination.toLowerCase();
 
-       //TODO: it is currently possible to perform a castle through check (validationLevel.full)
        if(this.isKingCastling(source, destination)) this.performKingsCastle();
        else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
        else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source);
@@ -235,6 +234,8 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
+          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             this.error('White can\'t perform a King\'s castle through check.');
           if(!white.canKingsCastle && validation !== validationLevel.off) this.error('White can\'t perform a King\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h1', 'f1');  //moves the rook
@@ -242,6 +243,8 @@ function Board(passedTurnIndicator)
       }
       else
       {
+          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             this.error('Black can\'t perform a King\'s castle through check.');
           if(!black.canKingsCastle && validation !== validationLevel.off) this.error('Black can\'t perform a King\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h8', 'f8');  //moves the rook
@@ -255,6 +258,8 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
+          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             this.error('White can\'t perform a Queen\'s castle through check.');
           if(!white.canQueensCastle && validation !== validationLevel.off) this.error('White can\'t perform a Queen\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a1', 'd1');  //moves the rook
@@ -262,6 +267,8 @@ function Board(passedTurnIndicator)
       }
       else
       {
+          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             this.error('Black can\'t perform a Queen\'s castle through check.');
           if(!black.canQueensCastle && validation !== validationLevel.off) this.error('Black can\'t perform a Queen\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a8', 'd8');  //moves the rook

@@ -266,6 +266,7 @@ moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8
 
 /**This parses the piece locations and the information that follows.
 It returns a board so that it can be used for starting positions.*/
+//TODO: reuse Parse.ShortenedFenRow to make Parse.FenRow
 Parse.ShortenedFenRow = function(game, text)
 {
     if(!moveTextRegex[Parse.ShortenedFenRow].test(text)) throw new SyntaxError(text + ' is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]);

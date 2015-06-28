@@ -63,19 +63,42 @@ function filterFriendlyFire(board, destinations, isWhite)
     function isPieceWhite(symbol){return (symbol === symbol.toUpperCase());};
 }
 
-function isKingInCheck(board, isWhitesTurn)
+function areSquaresInCheck(board, sourceArray, isWhitesTurn)
 {
-    var kingSource = findKing(board, isWhitesTurn);
-    //TODO: make this faster by searching the queen's movement from the king (then the knight then king)
     var allPieces = getAllPieces(board, !isWhitesTurn);
 
-   for (var i = 0; i < allPieces.length; i++)
+   for (var pieceIndex = 0; pieceIndex < allPieces.length; pieceIndex++)
    {
-       var allMoves = allPieces[i].getAllMoves();
+       var allMoves = allPieces[pieceIndex].getAllMoves();
        //don't need to filter out KC, QC, EN because they don't cause check
-       if(allMoves.indexOf(kingSource) !== -1) return true;
+      for (var sourceIndex = 0; sourceIndex < sourceArray.length; sourceIndex++)
+      {
+          if(allMoves.indexOf(sourceArray[sourceIndex].toUpperCase()) !== -1) return true;
+      }
    }
     return false;
+}
+function isKingInCheck(board, isWhitesTurn)
+{
+    return areSquaresInCheck(board, [findKing(board, isWhitesTurn)], isWhitesTurn);
+}
+function isKingsCastleLegal(board, isWhitesTurn)
+{
+    if(isWhitesTurn && !board.getState().white.canKingsCastle) return false;
+    else if(isWhitesTurn) return !areSquaresInCheck(board, ['E1', 'F1', 'G1', 'H1'], isWhitesTurn);
+
+    //else is black's turn
+    if(!board.getState().black.canKingsCastle) return false;
+    return !areSquaresInCheck(board, ['E8', 'F8', 'G8', 'H8'], isWhitesTurn);
+}
+function isQueensCastleLegal(board, isWhitesTurn)
+{
+    if(isWhitesTurn && !board.getState().white.canQueensCastle) return false;
+    else if(isWhitesTurn) return !areSquaresInCheck(board, ['A1', 'B1', 'C1', 'D1', 'E1'], isWhitesTurn);
+
+    //else is black's turn
+    if(!board.getState().black.canQueensCastle) return false;
+    return !areSquaresInCheck(board, ['A8', 'B8', 'C8', 'D8', 'E8'], isWhitesTurn);
 }
 
 function getAllLegalMoves(board, isWhitesTurn)

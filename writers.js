@@ -86,6 +86,7 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
 }
 
 /**The string returned has piece locations and the information that follows.*/
+//TODO: reuse Write.FenRow to make Write.ShortenedFenRow
 Write.FenRow = function(game, index)
 {
     var board = game.getBoard(index), fullMoveCount = Math.floor((index+1)/2);
