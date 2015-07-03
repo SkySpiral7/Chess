@@ -63,7 +63,15 @@ function filterFriendlyFire(board, destinations, isWhite)
     function isPieceWhite(symbol){return (symbol === symbol.toUpperCase());};
 }
 
-function areSquaresInCheck(board, sourceArray, isWhitesTurn)
+function areAllSquaresEmpty(board, sourceArray)
+{
+   for (var sourceIndex = 0; sourceIndex < sourceArray.length; sourceIndex++)
+   {
+       if(board.getPiece(sourceArray[sourceIndex]) !== '1') return false;
+   }
+    return true;
+}
+function isAnySquareInCheck(board, sourceArray, isWhitesTurn)
 {
     var allPieces = getAllPieces(board, !isWhitesTurn);
 
@@ -80,25 +88,29 @@ function areSquaresInCheck(board, sourceArray, isWhitesTurn)
 }
 function isKingInCheck(board, isWhitesTurn)
 {
-    return areSquaresInCheck(board, [findKing(board, isWhitesTurn)], isWhitesTurn);
+    return isAnySquareInCheck(board, [findKing(board, isWhitesTurn)], isWhitesTurn);
 }
 function isKingsCastleLegal(board, isWhitesTurn)
 {
+    var squares;
     if(isWhitesTurn && !board.getState().white.canKingsCastle) return false;
-    else if(isWhitesTurn) return !areSquaresInCheck(board, ['E1', 'F1', 'G1', 'H1'], isWhitesTurn);
-
+    else if(isWhitesTurn) squares = ['E1', 'F1', 'G1', 'H1'];
     //else is black's turn
-    if(!board.getState().black.canKingsCastle) return false;
-    return !areSquaresInCheck(board, ['E8', 'F8', 'G8', 'H8'], isWhitesTurn);
+    else if(!board.getState().black.canKingsCastle) return false;
+    else squares = ['E8', 'F8', 'G8', 'H8'];
+
+    return (areAllSquaresEmpty(board, squares.slice(1, 3)) && !isAnySquareInCheck(board, squares, isWhitesTurn));
 }
 function isQueensCastleLegal(board, isWhitesTurn)
 {
+    var squares;
     if(isWhitesTurn && !board.getState().white.canQueensCastle) return false;
-    else if(isWhitesTurn) return !areSquaresInCheck(board, ['A1', 'B1', 'C1', 'D1', 'E1'], isWhitesTurn);
-
+    else if(isWhitesTurn) squares = ['A1', 'B1', 'C1', 'D1', 'E1'];
     //else is black's turn
-    if(!board.getState().black.canQueensCastle) return false;
-    return !areSquaresInCheck(board, ['A8', 'B8', 'C8', 'D8', 'E8'], isWhitesTurn);
+    else if(!board.getState().black.canQueensCastle) return false;
+    else squares = ['A8', 'B8', 'C8', 'D8', 'E8'];
+
+    return (areAllSquaresEmpty(board, squares.slice(1, 4)) && !isAnySquareInCheck(board, squares, isWhitesTurn));
 }
 
 function getAllLegalMoves(board, isWhitesTurn)
@@ -108,7 +120,7 @@ function getAllLegalMoves(board, isWhitesTurn)
    for (var pieceIndex = 0; pieceIndex < allPieces.length; pieceIndex++)
    {
        var allMoves = allPieces[pieceIndex].getAllMoves();
-      for (var moveIndex = 0; moveIndex < allMoves.length; moveIndex++)
+      moveLoop: for (var moveIndex = 0; moveIndex < allMoves.length; moveIndex++)
       {
           var result = board.copy();
           var source = allPieces[pieceIndex].getSource();
@@ -116,8 +128,16 @@ function getAllLegalMoves(board, isWhitesTurn)
          switch (allMoves[moveIndex])
          {
              case 'EN': result.performEnPassant(source); break;
-             case 'KC': result.performKingsCastle(); break;
-             case 'QC': result.performQueensCastle(); break;
+            case 'KC':
+                if(allPieces[pieceIndex] instanceof Rook  //both rook and king return castling so I ignore the rook
+                   || !isKingsCastleLegal(board, isWhitesTurn)) continue moveLoop;  //the label is redundant but adds clarity
+                result.performKingsCastle();
+            break;
+            case 'QC':
+                if(allPieces[pieceIndex] instanceof Rook
+                   || !isQueensCastleLegal(board, isWhitesTurn)) continue moveLoop;
+                result.performQueensCastle();
+            break;
             default:
                 var destination = allMoves[moveIndex];
                 var promotedTo;

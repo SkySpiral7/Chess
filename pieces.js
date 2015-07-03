@@ -8,16 +8,17 @@ function getAllPieces(board, isWhitesTurn)
       {
           var symbol = boardSquares[fileIndex][rankIndex];
           if(symbol !== '1' && isWhitesTurn === isPieceWhite(symbol))
-             pieces.push(symbolToPiece(symbol, indexToCoord(fileIndex, rankIndex), board));
+             pieces.push(symbolToPiece(indexToCoord(fileIndex, rankIndex), board));
       }
    }
     return pieces;
     function isPieceWhite(symbol){return (symbol === symbol.toUpperCase());};
 }
 
-function symbolToPiece(originalSymbol, source, board)
+function symbolToPiece(source, board)
 {
     source = source.toUpperCase();
+    var originalSymbol = board.getPiece(source);
     var symbol = originalSymbol.toUpperCase();
     var isWhite = (symbol === originalSymbol);
    switch (symbol)
@@ -29,7 +30,7 @@ function symbolToPiece(originalSymbol, source, board)
        case 'K': return new King(source, isWhite, board);
        case 'P': return new Pawn(source, isWhite, board);
    }
-    throw new Error('Invalid symbol: ' + originalSymbol);
+    board.error(source + ' is empty');
 }
 /*
 Interface for the pieces.
@@ -40,6 +41,7 @@ function Piece(source, isWhite)
     /**Array of destinations that can be moved to and might contain: 'KC', 'QC', 'EN'.
     Doesn't account for check otherwise only legal moves are returned.*
     this.getAllMoves = function(){return ['G2', 'KC'];};
+    /**Doesn't account for check otherwise returns true if this piece can legally move to the destination.*
     this.isMoveLegal = function(destination){return (this.getAllMoves().indexOf(destination.toUpperCase()) !== -1);};
     this.toString = function(){return 'Black King on A5';};
     this.getSource = function(){return source;};
@@ -64,11 +66,16 @@ function Rook(source, isWhite, board)
           allMoves = allMoves.concat(movementType.cardinal(source, isWhite, board));
 
           //castling:
-          //the source is checked so that only the correct rook will return QC etc
-          if(isWhite && source === 'H1' && board.getState().white.canKingsCastle) allMoves.push('KC');
-          else if(!isWhite && source === 'H8' && board.getState().black.canKingsCastle) allMoves.push('KC');
-          else if(isWhite && source === 'A1' && board.getState().white.canQueensCastle) allMoves.push('QC');
-          else if(!isWhite && source === 'H1' && board.getState().black.canQueensCastle) allMoves.push('QC');
+          //the source is checked so that only the correct rook will return KC/QC
+          if(isWhite && source === 'H1' && board.getState().white.canKingsCastle &&
+             areAllSquaresEmpty(board, ['F1', 'G1'])) allMoves.push('KC');
+          else if(!isWhite && source === 'H8' && board.getState().black.canKingsCastle &&
+             areAllSquaresEmpty(board, ['F8', 'G8'])) allMoves.push('KC');
+
+          else if(isWhite && source === 'A1' && board.getState().white.canQueensCastle &&
+             areAllSquaresEmpty(board, ['B1', 'C1', 'D1'])) allMoves.push('QC');
+          else if(!isWhite && source === 'H1' && board.getState().black.canQueensCastle &&
+             areAllSquaresEmpty(board, ['B8', 'C8', 'D8'])) allMoves.push('QC');
       }
        return allMoves;
    };

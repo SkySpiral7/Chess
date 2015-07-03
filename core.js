@@ -130,7 +130,7 @@ function Board(passedTurnIndicator)
           if(!isWhitesTurn && (/^[RNBQKP]$/).test(pieceMoved)) this.error('Black can\'t move white\'s piece. coordinates: ' + source + destination);
           if(pieceMoved.toUpperCase() !== 'P' && promotedTo !== undefined) this.error('Piece ' + pieceMoved + ' can\'t be promoted to ' + promotedTo + '. coordinates: ' + source + destination);
       }
-       if(validation === validationLevel.full && !symbolToPiece(pieceMoved, source, this).isMoveLegal(destination))
+       if(validation === validationLevel.full && !symbolToPiece(source, this).isMoveLegal(destination))
           this.error(pieceMoved + source + ' can\'t legally move to ' + destination);
 
        //done below errors so that the error message will have same case. ok since the error checking doesn't need them
@@ -234,18 +234,16 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
-          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             this.error('White can\'t perform a King\'s castle through check.');
-          if(!white.canKingsCastle && validation !== validationLevel.off) this.error('White can\'t perform a King\'s castle.');
+          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             || (!white.canKingsCastle && validation !== validationLevel.off)) this.error('White can\'t perform a King\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h1', 'f1');  //moves the rook
           this.simpleMove('e1', 'g1');  //moves the king
       }
       else
       {
-          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             this.error('Black can\'t perform a King\'s castle through check.');
-          if(!black.canKingsCastle && validation !== validationLevel.off) this.error('Black can\'t perform a King\'s castle.');
+          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             || (!black.canKingsCastle && validation !== validationLevel.off)) this.error('Black can\'t perform a King\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h8', 'f8');  //moves the rook
           this.simpleMove('e8', 'g8');  //moves the king
@@ -258,18 +256,16 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
-          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             this.error('White can\'t perform a Queen\'s castle through check.');
-          if(!white.canQueensCastle && validation !== validationLevel.off) this.error('White can\'t perform a Queen\'s castle.');
+          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             || (!white.canQueensCastle && validation !== validationLevel.off)) this.error('White can\'t perform a Queen\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a1', 'd1');  //moves the rook
           this.simpleMove('e1', 'c1');  //moves the king
       }
       else
       {
-          if(validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             this.error('Black can\'t perform a Queen\'s castle through check.');
-          if(!black.canQueensCastle && validation !== validationLevel.off) this.error('Black can\'t perform a Queen\'s castle.');
+          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
+             || (!black.canQueensCastle && validation !== validationLevel.off)) this.error('Black can\'t perform a Queen\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a8', 'd8');  //moves the rook
           this.simpleMove('e8', 'c8');  //moves the king
@@ -283,6 +279,10 @@ function Board(passedTurnIndicator)
    };
    this.setPieceByIndex = function(fileIndex, rankIndex, symbol)
    {
+       //not a board error because the board positions are unrelated
+       if(fileIndex < 0 || fileIndex >= 8
+          || rankIndex < 0 || rankIndex >= 8) throw new Error('Invalid coord: ' + indexToCoord(fileIndex, rankIndex) +
+          ' (' + fileIndex + ', ' + rankIndex + ')');
        boardSquares[fileIndex][rankIndex] = symbol;
    };
    this.getPiece = function(coord)
@@ -292,6 +292,9 @@ function Board(passedTurnIndicator)
    };
    this.getPieceByIndex = function(fileIndex, rankIndex)
    {
+       if(fileIndex < 0 || fileIndex >= 8
+          || rankIndex < 0 || rankIndex >= 8) throw new Error('Invalid coord: ' + indexToCoord(fileIndex, rankIndex) +
+          ' (' + fileIndex + ', ' + rankIndex + ')');
        return boardSquares[fileIndex][rankIndex];
    };
    this.error = function(message)
