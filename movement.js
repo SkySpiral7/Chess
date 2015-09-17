@@ -73,7 +73,7 @@ function areAllSquaresEmpty(board, sourceArray)
 }
 function isAnySquareInCheck(board, sourceArray, isWhitesTurn)
 {
-    var allPieces = getAllPieces(board, !isWhitesTurn);
+    var allPieces = findAllMyPieces(board, !isWhitesTurn);
 
    for (var pieceIndex = 0; pieceIndex < allPieces.length; pieceIndex++)
    {
@@ -116,7 +116,7 @@ function isQueensCastleLegal(board, isWhitesTurn)
 function getAllLegalMoves(board, isWhitesTurn)
 {
     var allLegalMoves = [];
-    var allPieces = getAllPieces(board, isWhitesTurn);
+    var allPieces = findAllMyPieces(board, isWhitesTurn);
    for (var pieceIndex = 0; pieceIndex < allPieces.length; pieceIndex++)
    {
        var allMoves = allPieces[pieceIndex].getAllMoves();

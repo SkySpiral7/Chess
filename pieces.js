@@ -1,4 +1,4 @@
-function getAllPieces(board, isWhitesTurn)
+function findAllMyPieces(board, isWhitesTurn)
 {
     var pieces = [];
     var boardSquares = board.getBoardSquares();
@@ -8,14 +8,14 @@ function getAllPieces(board, isWhitesTurn)
       {
           var symbol = boardSquares[fileIndex][rankIndex];
           if(symbol !== '1' && isWhitesTurn === isPieceWhite(symbol))
-             pieces.push(symbolToPiece(indexToCoord(fileIndex, rankIndex), board));
+             pieces.push(coordToPiece(indexToCoord(fileIndex, rankIndex), board));
       }
    }
     return pieces;
     function isPieceWhite(symbol){return (symbol === symbol.toUpperCase());};
 }
 
-function symbolToPiece(source, board)
+function coordToPiece(source, board)
 {
     source = source.toUpperCase();
     var originalSymbol = board.getPiece(source);
@@ -38,7 +38,7 @@ javascript can't have real interfaces because it would compile anyway.
 /**All pieces are immutable. Therefore the piece can't be moved after creation.*
 function Piece(source, isWhite)
 {
-    /**Array of destinations that can be moved to and might contain: 'KC', 'QC', 'EN'.
+    /**@return array of destinations that can be moved to. Result might contain: 'KC', 'QC', 'EN'.
     Doesn't account for check otherwise only legal moves are returned.*
     this.getAllMoves = function(){return ['G2', 'KC'];};
     /**Doesn't account for check otherwise returns true if this piece can legally move to the destination.*
@@ -47,8 +47,8 @@ function Piece(source, isWhite)
     this.getSource = function(){return source;};
     this.isWhite = function(){return isWhite;};
 
-    if(isWhite) this.getSymbol = function(){return 'P';};
-    else this.getSymbol = function(){return 'p';};
+    if(isWhite) this.getSymbol = function(){return 'Q';};
+    else this.getSymbol = function(){return 'q';};
 }
 */
 function Rook(source, isWhite, board)

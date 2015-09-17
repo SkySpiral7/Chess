@@ -1,6 +1,7 @@
 function coordToIndex(coord)
 {
     coord = coord.toUpperCase();
+    if(!(/^[A-H][1-8]$/).test(coord)) throw new Error('expected coordinates, got: ' + coord);
 
     var fileIndex = coord.charCodeAt(0);
     fileIndex -= 'A'.charCodeAt(0);  //adjust to 0
@@ -12,6 +13,7 @@ function coordToIndex(coord)
 }
 function indexToCoord(fileIndex, rankIndex)
 {
+    if(!(/^[0-7][0-7]$/).test(''+fileIndex+rankIndex)) throw new Error('illegal indexies: [' + fileIndex + '][' + rankIndex + ']');
     var coord = String.fromCharCode(fileIndex + ('A'.charCodeAt(0)));  //adjust from 0
     coord += (rankIndex + 1);  //adjust from 0
     return coord;
@@ -53,6 +55,7 @@ The first 2 are coordinates. promotedTo is the piece symbol (or undefined) and e
 function findBoardMove(beforeBoard, afterBoard)
 {
     var differences = findBoardDifferences(beforeBoard, afterBoard);
+    //TODO: bug: validate that castling or en passant is actually occurring for the length
    if (differences.length === 4)  //castling occurred
    {
        //all castling will involve one of the 4 corners which can be used to determine which side it was
@@ -89,11 +92,11 @@ function findBoardMove(beforeBoard, afterBoard)
    }
     else if(differences.length === 0) beforeBoard.error('Boards match.');  //This is an error because there is no move between them
     //else:
-    console.log('Before:\n' + beforeBoard.toString() + '\n\n' +
+    messageUser('Before:\n' + beforeBoard.toString() + '\n\n' +
                 'After:\n' + afterBoard.toString());
     throw new Error('Requires multiple moves.');
 }
-/**Resets the state of the afterPositions*/
+/**Resets the state of afterPositions*/
 function resetState(beforeBoard, afterPositions, knownState)
 {
     var move = findBoardMove(beforeBoard, afterPositions);  //get move required to go from beforeBoard to afterPositions
@@ -116,13 +119,16 @@ function resetState(beforeBoard, afterPositions, knownState)
 
 /**I created and posted this on stack overflow:
 http://stackoverflow.com/questions/6226189/how-to-convert-a-string-to-bytearray/30836196#30836196
+Technically accepts and returns ISO-Latin-1 not just Ascii.
 */
 function stringToAsciiByteArray(str)
 {
     var bytes = [];
    for (var i = 0; i < str.length; ++i)
    {
-       bytes.push(str.charCodeAt(i));  //I'm assuming that the character code is only a byte
+       var charByte = str.charCodeAt(i);
+       if(charByte > 255) throw new Error('Illegal character '+str[i]+' ('+charByte+') @ '+i+': ' + str);
+       bytes.push(charByte);
    }
     return bytes;
 }

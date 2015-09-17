@@ -158,6 +158,7 @@ Write.FriendlyCoordinateNotationMove = function(game, index)
 
     if(isKingInCheck(afterBoard, afterBoard.isWhitesTurn())) result += '+';
     if(getAllLegalMoves(afterBoard, afterBoard.isWhitesTurn()).length === 0) result += '#';  //if game is over
+    //the final +# is impossible to know
 
     return result.toUpperCase();
 }
@@ -180,7 +181,7 @@ Write.MinimumCoordinateNotationMove = function(game, index)
     return result.toUpperCase();
 }
 
-/**Note that the output string is in US-ASCII.*/
+/**Note that the output string is in ISO-Latin-1.*/
 Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminator, gameText)
 {
     //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver
@@ -228,10 +229,10 @@ Write.BinaryCompressedCoordinateFormatMove = function(game, index, gameTerminato
     return String.fromCharCode(firstByte, secondByte);
 }
 
-/**Note that the output string is in US-ASCII.*/
+/**Note that the output string is in ISO-Latin-1.*/
 Write.BinaryCompressedFenRow = function(game, index, gameTerminator, gameText)
 {
-    if(gameTerminator !== undefined) return gameText + String.fromCharCode(0x88);
+    if(gameTerminator !== undefined) return gameText + String.fromCharCode(0x88);  //the character is non-printable
 
     var resultString = '', tempString = '';
     var boardSquares = game.getBoard(index).getBoardSquares();
@@ -286,7 +287,7 @@ Write.BinaryCompressedFenRow.symbolToHexString = {
     'p': 'E'
 };
 
-/**This function returns 3D array which is an array of board states (each of which is a 2D array of board squares).
+/**This function returns a 3D array which is an array of board states (each of which is a 2D array of board squares).
 The array returned is used by "temp chess game.html" and by Write.FormatGameSquareArrayAsString.*/
 Write.GameSquareArray = function(game)
 {

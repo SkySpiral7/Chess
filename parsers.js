@@ -57,7 +57,12 @@ Parse.VariableGameNotation = function(text)
        var game = new Game(initialBoard);
       for (var moveIndex = 0; moveIndex < moveArray.length; moveIndex++)
       {
-          parser(game, moveArray[moveIndex]);
+          try {
+             parser(game, moveArray[moveIndex]);
+          } catch(e) {
+             messageUser('Error occurred on move ' + ((moveIndex / 2) + 1));
+             throw e;
+          }
       }
        return game;
    }
@@ -197,7 +202,7 @@ Parse.VariableGameNotationMoveTextSection = function(text, formatRegex)
           var nag = nagRegex.exec(text.substring(i))[0];
           i += nag.length-1;
       }
-       else if((/^(?:\*|1-0|0-1|1\/2-1\/2)$/).test(text.substring(i))) break;
+       else if((/^(?:\*|1-0|0-1|1\/2-1\/2)\s*$/).test(text.substring(i))) break;
           //game termination markers are thrown away but required. does not support multiple games
       else if (formatRegex.test(text.substring(i)))
       {
@@ -207,13 +212,14 @@ Parse.VariableGameNotationMoveTextSection = function(text, formatRegex)
       }
       else
       {
-          console.log('Error occurred on move ' + ((moveArray.length / 2) + 1));
+          messageUser('Error occurred on move ' + ((moveArray.length / 2) + 1));
           throw new SyntaxError('Regex: ' + formatRegex + ' doesn\'t match input starting with ' + text.substring(i));
       }
    }
    if (text.substring(i) === '')
    {
-       console.log('Error occurred after move ' + ((moveArray.length + 1) / 2));
+       //TODO: a bug doesn't allow a line comment to exist between last tag and white's move #
+       messageUser('Error occurred after move ' + ((moveArray.length + 1) / 2));
        throw new SyntaxError('Game termination marker missing.');
    }
     return moveArray;
@@ -229,7 +235,7 @@ moveTextRegex[Parse.MinimumCoordinateNotationMove] = /^[A-H][1-8][A-H][1-8][QBNR
 Parse.FriendlyCoordinateNotationMove = function(game, text)
 {
     //eg: Ra1-a8xQ, Pa7-B8xR=q+#+, Pa7-A8=N, Pa5-b6en+#, KC#, Ra1-a8##
-    var board = game.getBoard();
+    var beforeBoard = game.getBoard();
     text = text.toUpperCase();
     if((/^KC\+?#?[+#]?$/).test(text)){game.performKingsCastle(); return;}
     if((/^QC\+?#?[+#]?$/).test(text)){game.performQueensCastle(); return;}
@@ -242,9 +248,9 @@ Parse.FriendlyCoordinateNotationMove = function(game, text)
     var captured = regexResult[4];  //might be empty string
     var promotedTo = regexResult[5];  //might be undefined
 
-    var actualPieceMoved = board.getPiece(source).toUpperCase();
-    if(actualPieceMoved === '1' && validation !== validationLevel.off) game.error('Move was ' + text + ' but that square is empty.');
-    if(pieceMoved !== actualPieceMoved && validation !== validationLevel.off) game.error('Move was ' + text + ' but the board\'s piece is ' + actualPieceMoved);
+    var actualPieceMoved = beforeBoard.getPiece(source).toUpperCase();
+    if(actualPieceMoved === '1' && validation !== validationLevel.off) beforeBoard.error('Move was ' + text + ' but that square is empty.');
+    if(pieceMoved !== actualPieceMoved && validation !== validationLevel.off) beforeBoard.error('Move was ' + text + ' but the board\'s piece is ' + actualPieceMoved);
 
     if(captured === '') captured = '1';
    else
@@ -255,11 +261,11 @@ Parse.FriendlyCoordinateNotationMove = function(game, text)
 
     game.move(source, destination, promotedTo);
 
-    var actualCapturedPiece = board.getState().capturedPiece.toUpperCase();
+    var actualCapturedPiece = game.getBoard().getState().capturedPiece.toUpperCase();  //get from the after board
    if (captured !== actualCapturedPiece && validation !== validationLevel.off)
    {
-       if(actualCapturedPiece === '1') game.error('Move was ' + text + ' but nothing was captured.');
-       game.error('Move was ' + text + ' but ' + actualCapturedPiece + ' was captured.');
+       if(actualCapturedPiece === '1') beforeBoard.error('Move was ' + text + ' but nothing was captured.');
+       beforeBoard.error('Move was ' + text + ' but ' + actualCapturedPiece + ' was captured.');
    }
 }
 moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8](?:EN|(?:X[QBNRP])?(?:=[QBNR])?)|[KQBNR][A-H][1-8]-[A-H][1-8](?:X[QBNRP])?|[KQ]C)\+?(?:#[+#]?)?/i
@@ -267,6 +273,7 @@ moveTextRegex[Parse.FriendlyCoordinateNotationMove] = /^(?:P[A-H][1-8]-[A-H][1-8
 /**This parses the piece locations and the information that follows.
 It returns a board so that it can be used for starting positions.*/
 //TODO: reuse Parse.ShortenedFenRow to make Parse.FenRow
+//TODO: bug is ignoring the first move of SFEN
 Parse.ShortenedFenRow = function(game, text)
 {
     if(!moveTextRegex[Parse.ShortenedFenRow].test(text)) throw new SyntaxError(text + ' is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]);
@@ -278,10 +285,8 @@ Parse.ShortenedFenRow = function(game, text)
     var nonEmptyCastling = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|[KQkq]{1,4})(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;
    if (!nonEmptyCastling.test(text) && validation !== validationLevel.off)
    {
-       var message = 'Too many spaces: ' + text;
        //Verbose error message: Castling ability can't be empty if provided (or there was an extra space)
-       if(hasBeforeBoard) game.error(message);
-       throw new SyntaxError(message);
+       throw new SyntaxError('Too many spaces: ' + text);
    }
     //the use of both regular expressions (nonEmptyCastling and moveTextRegex) has validated everything after the board
 
@@ -340,12 +345,7 @@ Parse.FenBoard = function(game, board, text)
     //I also thought it was better than doing inside the loop: if(/[2-8]/) loop: board.setPieceByIndex(fileIndex, rankIndex, '1');
 
     var boardRegex = /^(?:[KQBNRPkqbnrp1]{8}\/){7}[KQBNRPkqbnrp1]{8}$/;
-   if (!boardRegex.test(text))
-   {
-       var message = 'Invalid board: ' + originalText;
-       if(game == null) throw new SyntaxError(message);
-       game.error(message);
-   }
+    if(!boardRegex.test(text)) throw new SyntaxError('Invalid board: ' + originalText);
     //if this passes then the entire half move text is valid. (this treats /44/ as /8/)
 
     var rankArray = text.split('/');
@@ -371,6 +371,7 @@ Parse.BinaryCompressedCoordinateFormatGame = function(byteArray)
     return game;
 }
 
+/**@returns true if the game is over*/
 Parse.BinaryCompressedCoordinateFormatMove = function(game, firstByte, secondByte)
 {
     //(000 000, 000 000) 00 0 0. (source, destination) promotedTo didPromote isGameOver

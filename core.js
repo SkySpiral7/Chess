@@ -39,14 +39,18 @@ function Game(initialBoard)
        result.performEnPassant(source);
        this.addBoard(result);
    };
+   /**This should only be called by binary parsers.
+   Text parsers should call board.error directly (to avoid duplicate "Error occurred on move" message").
+   Everything unrelated to board should throw.*/
    this.error = function(message)
    {
-       console.log('Error occurred on move ' + (boardArray.length / 2));
+       messageUser('Error occurred on move ' + ((boardArray.length + 1) / 2));
        this.getBoard().error(message);
    };
 }
 
-function Board(passedTurnIndicator)
+/**if(isWhitesTurn) then white will be calling this.move*/
+function Board(isWhitesTurn)
 {
     var boardSquares =
    [  //this rotation makes coordinate translation easier but it doesn't match FEN
@@ -62,15 +66,21 @@ function Board(passedTurnIndicator)
     //programmer readable variables to track board state
     var white = {canKingsCastle: true, canQueensCastle: true};
     var black = {canKingsCastle: true, canQueensCastle: true};
-    /**Not that if true then white will be calling this.move*/
-    var isWhitesTurn = passedTurnIndicator;
     var enPassantSquare = '-';
     /**The piece symbol that was captured by the last move.
     Will be '1' if nothing was captured and 'EN' if it was an en passant.*/
     var capturedPiece = '1';
 
     this.getState = function(){return {white: white, black: black, isWhitesTurn: isWhitesTurn, enPassantSquare: enPassantSquare, capturedPiece: capturedPiece};};
-    this.getBoardSquares = function(){return boardSquares;};
+   this.getBoardSquares = function()
+   {
+       var squaresCopy = [];
+      for (var i=0; i < boardSquares.length; i++)
+      {
+          squaresCopy.push(boardSquares[i].slice());  //shallow array copy
+      }
+       return squaresCopy;
+   };
    this.copy = function()
    {
        var result = new Board(isWhitesTurn);  //passing in isWhitesTurn is in this case redundant
@@ -130,15 +140,15 @@ function Board(passedTurnIndicator)
           if(!isWhitesTurn && (/^[RNBQKP]$/).test(pieceMoved)) this.error('Black can\'t move white\'s piece. coordinates: ' + source + destination);
           if(pieceMoved.toUpperCase() !== 'P' && promotedTo !== undefined) this.error('Piece ' + pieceMoved + ' can\'t be promoted to ' + promotedTo + '. coordinates: ' + source + destination);
       }
-       if(validation === validationLevel.full && !symbolToPiece(source, this).isMoveLegal(destination))
+       if(validation === validationLevel.full && !coordToPiece(source, this).isMoveLegal(destination))
           this.error(pieceMoved + source + ' can\'t legally move to ' + destination);
 
        //done below errors so that the error message will have same case. ok since the error checking doesn't need them
        source = source.toLowerCase();
        destination = destination.toLowerCase();
 
-       if(this.isKingCastling(source, destination)) this.performKingsCastle();
-       else if(this.isQueenCastling(source, destination)) this.performQueensCastle();
+       if(this.isKingsCastleOccurring(source, destination)) this.performKingsCastle();
+       else if(this.isQueensCastleOccurring(source, destination)) this.performQueensCastle();
        else if(this.isEnPassantOccurring(source, destination)) this.performEnPassant(source);
       else
       {
@@ -151,12 +161,11 @@ function Board(passedTurnIndicator)
           this.endTurn();
       }
    };
+    /**Doesn't perform any move validation. This should only be called by board.*/
    this.simpleMove = function(source, destination)
    {
-       //doesn't perform any move validation
-       var result = this.getPiece(source);
-       this.setPiece(source, '1');  //make source empty
-       this.setPiece(destination, result);
+       this.setPiece(destination, this.getPiece(source));
+       this.setPiece(source, '1');
    };
    this.castlingAbilityLoss = function(pieceMoved, source)
    {
@@ -197,7 +206,7 @@ function Board(passedTurnIndicator)
        var symbol = this.getPiece(source);
        return (symbol.toUpperCase() === 'P' && destination === enPassantSquare);
    };
-   this.isKingCastling = function(source, destination)
+   this.isKingsCastleOccurring = function(source, destination)
    {
        var symbol = this.getPiece(source);
        //assume that isWhitesTurn matches the color of the king
@@ -205,7 +214,7 @@ function Board(passedTurnIndicator)
        if(symbol === 'k' && (source + destination) === 'e8g8') return black.canKingsCastle;
        return false;
    };
-   this.isQueenCastling = function(source, destination)
+   this.isQueensCastleOccurring = function(source, destination)
    {
        var symbol = this.getPiece(source);
        //assume that isWhitesTurn matches the color of the king
@@ -234,16 +243,16 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
-          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             || (!white.canKingsCastle && validation !== validationLevel.off)) this.error('White can\'t perform a King\'s castle.');
+          if((!white.canKingsCastle && validation !== validationLevel.off)
+             || (validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))) this.error('White can\'t perform a King\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h1', 'f1');  //moves the rook
           this.simpleMove('e1', 'g1');  //moves the king
       }
       else
       {
-          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             || (!black.canKingsCastle && validation !== validationLevel.off)) this.error('Black can\'t perform a King\'s castle.');
+          if((!black.canKingsCastle && validation !== validationLevel.off)
+             || (validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))) this.error('Black can\'t perform a King\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('h8', 'f8');  //moves the rook
           this.simpleMove('e8', 'g8');  //moves the king
@@ -256,16 +265,16 @@ function Board(passedTurnIndicator)
        capturedPiece = '1';
       if (isWhitesTurn)
       {
-          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             || (!white.canQueensCastle && validation !== validationLevel.off)) this.error('White can\'t perform a Queen\'s castle.');
+          if((!white.canQueensCastle && validation !== validationLevel.off)
+             || (validation === validationLevel.full && !isQueensCastleLegal(this, isWhitesTurn))) this.error('White can\'t perform a Queen\'s castle.');
           white = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a1', 'd1');  //moves the rook
           this.simpleMove('e1', 'c1');  //moves the king
       }
       else
       {
-          if((validation === validationLevel.full && !isKingsCastleLegal(this, isWhitesTurn))
-             || (!black.canQueensCastle && validation !== validationLevel.off)) this.error('Black can\'t perform a Queen\'s castle.');
+          if((!black.canQueensCastle && validation !== validationLevel.off)
+             || (validation === validationLevel.full && !isQueensCastleLegal(this, isWhitesTurn))) this.error('Black can\'t perform a Queen\'s castle.');
           black = {canKingsCastle: false, canQueensCastle: false};
           this.simpleMove('a8', 'd8');  //moves the rook
           this.simpleMove('e8', 'c8');  //moves the king
@@ -300,7 +309,7 @@ function Board(passedTurnIndicator)
    this.error = function(message)
    {
        var boardString = 'board:\n' + this.toString();
-       console.log(boardString);
+       messageUser(boardString);
        throw new Error(message);
    };
    this.toString = function()
