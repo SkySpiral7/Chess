@@ -299,22 +299,15 @@ It returns a board so that it can be used for starting positions.*/
 //TODO: bug is ignoring the first move of SFEN
 Parse.ShortenedFenRow = function(game, text)
 {
-    if(!moveTextRegex[Parse.ShortenedFenRow].test(text)) throw new SyntaxError(text + ' is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]);
+    //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
+    if(!new RegExp(moveTextRegex[Parse.ShortenedFenRow].source+'$').test(text)) throw new SyntaxError(text + ' is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]);
     //this is the only parse method that immediately checks moveTextRegex.
     //This function needs to do so because the SetUp tag's syntax hasn't been validated yet.
 
     var hasBeforeBoard = (game !== undefined && game !== null);
     var beforeBoard, afterBoard;
 
-    //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq a2 +#
-    var nonEmptyCastling = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|[KQkq]{1,4})(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?$/;
-   if (!nonEmptyCastling.test(text) && validation !== validationLevel.off)
-   {
-       //Verbose error message: Castling ability can't be empty if provided (or there was an extra space)
-       throw new SyntaxError('Too many spaces: ' + text);
-   }
-    //the use of both regular expressions (nonEmptyCastling and moveTextRegex) has validated everything after the board
-
+    var originalText = text;
     text = text.replace(/\s+/g, ' ').trim();
     var sections = text.split(' ');
     if(hasBeforeBoard) beforeBoard = game.getBoard();
@@ -336,6 +329,7 @@ Parse.ShortenedFenRow = function(game, text)
 
    if (sections[0] !== undefined && (/^(?:-|[KQkq]{1,4})$/).test(sections[0]))
    {
+       if(!(/^(?:-|K?Q?k?q?)$/).test(sections[0])) throw new SyntaxError('Illegal Castling info: ' + originalText);
        //newState.white.canKingsCastle = (sections[0][0] === 'K') it's the only one that can do that but I decided not to in order to keep them lined up
        newState.white = {canKingsCastle: (sections[0].indexOf('K') !== -1), canQueensCastle: (sections[0].indexOf('Q') !== -1)};
        newState.black = {canKingsCastle: (sections[0].indexOf('k') !== -1), canQueensCastle: (sections[0].indexOf('q') !== -1)};
@@ -343,14 +337,15 @@ Parse.ShortenedFenRow = function(game, text)
        sections.shift();
 
        if(sections[0] !== undefined && (/^[A-H][1-8]$/i).test(sections[0])) newState.enPassantSquare = sections.shift().toUpperCase();
-       else if(sections[0] === '-') sections.shift();  //newState.enPassantSquare is already set to 1
+       else if(sections[0] === '-'){newState.enPassantSquare = '1'; sections.shift();}
    }
+   //if there is a section left then it is game markers: +#
 
     if(hasBeforeBoard) resetState(beforeBoard, afterBoard, newState);
     else afterBoard.changeState(newState);
     return afterBoard;
 }
-moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|K?Q?k?q?)(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?/;
+moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPkqbnrp1-8]{1,8}(?: [WBwb])?(?: (?:-|[KQkq]{1,4})(?: -| [a-hA-H][1-8])?)?(?: \+?(?:#[+#]?)?)?/;
 
 /**This only parses the piece locations.*/
 Parse.FenBoard = function(game, board, text)
@@ -358,6 +353,8 @@ Parse.FenBoard = function(game, board, text)
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
     var originalText = text;
     //doesn't copy the board because a new one was passed in
+    if((/\d\d+/).test(text)) throw new SyntaxError('Invalid board: ' + originalText);  //can't have adjacent numbers
+
     //this order is logical and most efficient due to slowest string growth rate
     text = text.replace(/2/g, '11');
     text = text.replace(/3/g, '111');
@@ -371,7 +368,7 @@ Parse.FenBoard = function(game, board, text)
 
     var boardRegex = /^(?:[KQBNRPkqbnrp1]{8}\/){7}[KQBNRPkqbnrp1]{8}$/;
     if(!boardRegex.test(text)) throw new SyntaxError('Invalid board: ' + originalText);
-    //if this passes then the entire half move text is valid. (this treats /44/ as /8/)
+    //after this point the entire board section is valid
 
     var rankArray = text.split('/');
     rankArray.reverse();  //FEN starts with rank 8 instead of 1

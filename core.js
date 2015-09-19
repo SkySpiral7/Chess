@@ -91,7 +91,7 @@ function Board(isWhitesTurn)
    {
        var newState = this.getState();  //default to current state
        if(stateChange.isWhitesTurn !== undefined) newState.isWhitesTurn = stateChange.isWhitesTurn;
-       if(stateChange.enPassantSquare !== undefined) newState.enPassantSquare = stateChange.enPassantSquare;
+       if(stateChange.enPassantSquare !== undefined) newState.enPassantSquare = stateChange.enPassantSquare.toUpperCase();
        if(stateChange.capturedPiece !== undefined) newState.capturedPiece = stateChange.capturedPiece;
       if (stateChange.white !== undefined)
       {
@@ -114,7 +114,7 @@ function Board(isWhitesTurn)
        white = {canKingsCastle: newState.white.canKingsCastle, canQueensCastle: newState.white.canQueensCastle};
        black = {canKingsCastle: newState.black.canKingsCastle, canQueensCastle: newState.black.canQueensCastle};
        isWhitesTurn = newState.isWhitesTurn;
-       enPassantSquare = newState.enPassantSquare;
+       enPassantSquare = newState.enPassantSquare.toUpperCase();
        capturedPiece = newState.capturedPiece;
    };
     this.isWhitesTurn = function(){return isWhitesTurn;};

@@ -326,6 +326,106 @@ Tester.parsers.VariableGameNotationMoveTextSection.happy=function(isFirst)
 
     TesterUtility.displayResults('Tester.parsers.VariableGameNotationMoveTextSection.happy', testResults, isFirst);
 };
+Tester.parsers.ShortenedFenRow=function(isFirst)
+{
+    TesterUtility.clearResults(isFirst);
+
+    var testResults=[];
+    var actionTaken, expected;
+    var boardString = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR ';
+
+    try{
+    actionTaken='Simple';
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString+'w KQkq -'), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Black\'s Turn';
+    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b KQkq -'), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Can\'t castle';
+    var state = {white: {canKingsCastle: false, canQueensCastle: false},
+       black: {canKingsCastle: false, canQueensCastle: false}};
+    var expected = new Board(true);
+    expected.changeState(state);
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w - -'), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='En Passant';
+    var state = {enPassantSquare: 'A3'};
+    var expected = new Board(true);
+    expected.changeState(state);
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w - a3'), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='No info';
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString), Action: actionTaken, Description: 'Trailing Space'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='No info';
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString.substring(0, boardString.length-1)), Action: actionTaken, Description: 'No Trailing Space'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='No En Passant';
+    var state = {white: {canKingsCastle: false, canQueensCastle: false},
+       black: {canKingsCastle: false, canQueensCastle: false}};
+    var expected = new Board(true);
+    expected.changeState(state);
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w -'), Action: actionTaken, Description: 'Can\'t Castle'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='No En Passant';
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString+'w KQkq'), Action: actionTaken, Description: 'Can Castle'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='No castle';
+    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b'), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Ignore';
+    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b +#+'), Action: actionTaken, Description: 'End markers'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Some castling';
+    var state = {white: {canKingsCastle: false, canQueensCastle: true},
+       black: {canKingsCastle: true, canQueensCastle: false}};
+    var expected = new Board(true);
+    expected.changeState(state);
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'b Qk'), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try {
+    actionTaken = 'Format';
+    Parse.ShortenedFenRow(null, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b a3');
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with Move Regex.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b a3 is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]), Actual: e, Action: actionTaken, Description: 'Move Regex'});
+   }
+
+    try {
+    actionTaken = 'Format';
+    Parse.ShortenedFenRow(null, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b QQ a3');
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with Move Regex.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Illegal Castling info: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b QQ a3'), Actual: e, Action: actionTaken, Description: 'Move Regex'});
+   }
+
+    TesterUtility.displayResults('Tester.parsers.ShortenedFenRow', testResults, isFirst);
+};
 /*Test these (possibly not a complete list)
 core:
 {
@@ -347,11 +447,10 @@ movement:
 }
 parsers:
 {
-   Parse.VariableGameNotation: split into sub tests
+   Parse.VariableGameNotation: test SetUp at least
    moveTextRegex[Parse.MinimumCoordinateNotationMove]
    Parse.FriendlyCoordinateNotationMove
    moveTextRegex[Parse.FriendlyCoordinateNotationMove]
-   Parse.ShortenedFenRow
    moveTextRegex[Parse.ShortenedFenRow]
    Parse.FenBoard
    Parse.BinaryCompressedCoordinateFormatMove
