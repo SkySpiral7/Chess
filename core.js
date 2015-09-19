@@ -136,14 +136,14 @@ function Board(isWhitesTurn)
       if (validation !== validationLevel.off)
       {
           if(pieceMoved === '1') this.error('Empty square ' + source + ' can\'t be moved. destination=' + destination);
-          if(isWhitesTurn && (/^[rnbqkp]$/).test(pieceMoved)) this.error('White can\'t move black\'s piece. coordinates: ' + source + destination);
-          if(!isWhitesTurn && (/^[RNBQKP]$/).test(pieceMoved)) this.error('Black can\'t move white\'s piece. coordinates: ' + source + destination);
+          if(isWhitesTurn && pieceMoved !== pieceMoved.toUpperCase()) this.error('White can\'t move black\'s piece. coordinates: ' + source + destination);
+          if(!isWhitesTurn && pieceMoved !== pieceMoved.toLowerCase()) this.error('Black can\'t move white\'s piece. coordinates: ' + source + destination);
           if(pieceMoved.toUpperCase() !== 'P' && promotedTo !== undefined) this.error('Piece ' + pieceMoved + ' can\'t be promoted to ' + promotedTo + '. coordinates: ' + source + destination);
       }
        if(validation === validationLevel.full && !coordToPiece(source, this).isMoveLegal(destination))
           this.error(pieceMoved + source + ' can\'t legally move to ' + destination);
 
-       //done below errors so that the error message will have same case. ok since the error checking doesn't need them
+       //done below errors so that the error message will have same case. this is ok since the error checking doesn't need them
        source = source.toLowerCase();
        destination = destination.toLowerCase();
 

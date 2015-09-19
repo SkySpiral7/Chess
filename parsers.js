@@ -35,16 +35,15 @@ Parse.VariableGameNotation = function(text)
        var format = 'SFEN';  //default
       if (setUpTagValue.indexOf(':') !== -1)
       {
-          //remove the first : and everything after it
-          format = setUpTagValue.replace(/:.*$/, '').toUpperCase();
-          setUpTagValue = setUpTagValue.substring(5);
+          format = setUpTagValue.replace(/:[\s\S]*$/, '').toUpperCase();  //remove the first : and everything after it
+          setUpTagValue = setUpTagValue.substring(format.length + 1);
       }
        if(format === 'SFEN') return Parse.ShortenedFenRow(undefined, setUpTagValue);
        else throw new Error('SetUp Format ' + format + ' is not supported.');
    }
    function findParser(formatFullString)
    {
-       var format = formatFullString.replace(/:.*$/, '').toUpperCase();  //remove the first : and everything after it
+       var format = formatFullString.replace(/:[\s\S]*$/, '').toUpperCase();  //remove the first : and everything after it
        if(format === 'BCCF') return Parse.BinaryCompressedCoordinateFormatGame;
        else if(format === 'BCFEN') return Parse.BinaryCompressedFenGame;
        else if(format === 'FCN') return Parse.FriendlyCoordinateNotationMove;
@@ -70,83 +69,104 @@ Parse.VariableGameNotation = function(text)
 
 Parse.VariableGameNotationTagSection = function(text)
 {
-    //state indicators:
-    var inBlockComment = false;
-    var inLineComment = false;
-    var inTag = false;
-    var inTagString = false;
+    //outputs
+    var allTags = {GameFormat: 'PGN', MoveFormat: 'SAN'};  //defaults
+    var isBinary = false;
 
+    //aggregators
+    var tagName = '', tagString = '';
+
+    //substates
+    var tagStringIsEscaped = false;
     /**index/cursor/position*/
     var i = 0;
 
-    //used for output:
-    var isBinary = false;
-    var allTags = {GameFormat: 'PGN', MoveFormat: 'SAN'};  //defaults
+    //TODO: sort all functions (and states etc) alphabetically
+    var states = {BlockComment: /0/, LineComment: /1/, Tag: /2/, TagString: /3/, TagName: /4/, Top: /5/, MoveText: /6/};
+    //the states enum doesn't use {} because the argument passed into [] is converted into a string
+    //therefore each of the states needs a unique toString value otherwise stateMachine would only keep the last one
+    var currentState = states.Top;
+    var stateMachine = {};
+   stateMachine[states.BlockComment] = function()
+   {
+       if(text[i] === '}') return states.Top;
+       return states.BlockComment;
+   };
+   stateMachine[states.LineComment] = function()
+   {
+       if(text[i] === '\r' || text[i] === '\n') return states.Top;
+          //obviously functional for old Mac and Unix end lines
+          //also includes Windows \r\n because \r ends it and \n is ignored as whiteSpace
+       return states.LineComment;
+   };
+   stateMachine[states.TagString] = function()
+   {
+       //currently allows tag strings to contain end lines
+      if (tagStringIsEscaped)
+      {
+          tagString += text[i];  //treats all escaped characters as literal even if it didn't need to be escaped
+          tagStringIsEscaped = false;
+          return states.TagString;
+      }
+       if(text[i] === '"') return states.Tag;
+       if(text[i] === '\\') tagStringIsEscaped = true;
+       else tagString += text[i];
+       return states.TagString;
+   };
+   stateMachine[states.TagName] = function()
+   {
+       if(!(/^[\w\s]$/).test(text[i])) throw new SyntaxError('A tag name must be followed by white space:\n' + text.substring(0, (i+1)));
+       if(text[i].trim() === '') return states.Tag;  //whiteSpace ends the name
+       tagName += text[i];
+       return states.TagName;
+   };
+   stateMachine[states.Top] = function()
+   {
+       if(text[i] === ';') return states.LineComment;
+       if(text[i] === '{') return states.BlockComment;
+       if(text[i] === '[') return states.Tag;
+       if(text[i].trim() === '') return states.Top;  //ignore whiteSpace
+       //isBinary = false;  //already is false
+       return states.MoveText;  //anything else would be the first character of the move text section
+   };
+   stateMachine[states.Tag] = function()
+   {
+       if(text[i].trim() === '') return states.Tag;  //ignore whiteSpace
+       if((/^\w$/).test(text[i]) && tagName !== '') throw new SyntaxError('A tag can\'t contain more than 1 name:\n' + text.substring(0, (i+1)));
+       if((/^\w$/).test(text[i])){tagName += text[i]; return states.TagName;}
+       if(text[i] === '"' && tagString !== '') throw new SyntaxError('A tag can\'t contain more than 1 string:\n' + text.substring(0, (i+1)));
+       if(text[i] === '"') return states.TagString;
+      if (text[i] === ']')
+      {
+          allTags[tagName] = tagString;  //save string as-is.
+          tagString = tagString.trim().replace(/:[\s\S]*$/, '').toUpperCase();  //remove the first : and everything after it
+         if (tagName === 'MoveFormat' && binaryFormats.indexOf(tagString) !== -1)
+         {
+             isBinary = true;
+             //if is binary format then tagSection is over
+             //anything that follows (whiteSpace, []{};, etc) are binary values for the move text section
+             ++i;  //move i to the first index of the move text section
+             return states.MoveText;
+         }
+          tagName = tagString = '';
+          return states.Top;
+      }
+       throw new SyntaxError('Illegal character found in tag:\n' + text.substring(0, (i+1)));
+   };
 
-    //string aggregators used by allTags:
-    var tagName = '';
-    var tagString = '';
-
-    if(text[0] === '%') text[0] = ';';  //PGN section 6. the useless token that does the same thing as an already existing one
+    if(text[0] === '%') text = ';' + text.substring(1);  //PGN section 6. the useless token that does the same thing as an already existing one
        //even though VGN doesn't allow this, it is easier to allow it then it is to throw
    for (; i < text.length; ++i)
    {
-      if (inLineComment)
-      {
-          if(text[i] === '\r' || text[i] === '\n') inLineComment = false;
-             //obviously functional for old Mac and Unix end lines
-             //also includes Windows \r\n because \r ends it and \n is ignored as whiteSpace
-          continue;
-      }
-      if (inBlockComment)
-      {
-          if(text[i] === '}') inBlockComment = false;
-          continue;
-      }
-      if (inTagString)
-      {
-          if(text[i] === '"' && text[i-1] !== '\\') inTagString = false;
-          else tagString += text[i];
-          continue;
-      }
-      if (inTag)
-      {
-          if(text[i] === '"' && tagString !== '') throw new SyntaxError('A tag can\'t contain more than 1 string:\n' + text.substring(0, (i+1)));
-          if(text[i] === '[') throw new SyntaxError('A tag can\'t contain a tag:\n' + text.substring(0, (i+1)));
-          if(text[i] === '"'){inTagString = true; continue;}
-         if (text[i] === ']')
-         {
-             tagName = tagName.trim();
-             allTags[tagName] = tagString;  //save string as-is.
-             tagString = tagString.trim().replace(/:.*$/, '').toUpperCase();  //remove the first : and everything after it
-            if (tagName === 'MoveFormat' && binaryFormats.indexOf(tagString) !== -1)
-            {
-                isBinary = true;
-                //if is binary format then tagSection is over
-                //anything that follows (whiteSpace, []{};, etc) are binary values for the move text section
-                ++i;  //move i to the first index of the move text section
-                break;
-            }
-             inTag = false;
-             tagName = tagString = '';
-             continue;
-         }
-          //PGN allows either comment to exist anywhere in a tag
-          //this finite state machine can read both PGN and VGN which is why it allows comments here
-          //so even though VGN doesn't allow comments inside tags, it is easier to allow it then to throw
-          if(text[i] === ';') inLineComment = true;
-          else if(text[i] === '{') inBlockComment = true;
-          else tagName += text[i];
-          continue;
-      }
-       if(text[i] === ';') inLineComment = true;
-       else if(text[i] === '{') inBlockComment = true;
-       else if(text[i] === '[') inTag = true;
-       else if(text[i].trim() === ''){}  //ignore whiteSpace
-       //anything else would be the first character of the move text section
-       else break;
+       currentState = stateMachine[currentState]();
+       if(currentState === states.MoveText) break;
    }
+    if(currentState === states.BlockComment) throw new SyntaxError('Block comment never ended:\n' + text);
+    if(currentState === states.TagString) throw new SyntaxError('Tag string never ended:\n' + text);
+    if(currentState === states.Tag || currentState === states.TagName) throw new SyntaxError('Tag never ended:\n' + text);
+    //Top, MoveText, and LineComment are all fine final states
     if(!(/^VGN(?::.*?)?$/i).test(allTags.GameFormat)) throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
+
     return {allTags: allTags, moveTextSection: text.substr(i), isBinary: isBinary};
 }
 
@@ -182,6 +202,7 @@ Parse.VariableGameNotationMoveTextSection = function(text, formatRegex)
           continue;
       }
       //to ignore rav I'm treating it as nestable comments
+      //this must occur after the comment states above because rav can contain real comments
       if (ravDepth !== 0)
       {
           if(text[i] === '(') ravDepth++;
@@ -213,14 +234,16 @@ Parse.VariableGameNotationMoveTextSection = function(text, formatRegex)
       else
       {
           messageUser('Error occurred on move ' + ((moveArray.length / 2) + 1));
-          throw new SyntaxError('Regex: ' + formatRegex + ' doesn\'t match input starting with ' + text.substring(i));
+          throw new SyntaxError('Regex: ' + formatRegex + ' doesn\'t match input starting with:\n' + text.substring(i));
       }
    }
    if (text.substring(i) === '')
    {
-       //TODO: a bug doesn't allow a line comment to exist between last tag and white's move #
        messageUser('Error occurred after move ' + ((moveArray.length + 1) / 2));
-       throw new SyntaxError('Game termination marker missing.');
+       if(inBlockComment) throw new SyntaxError('Block comment never ended:\n' + text);
+       if(ravDepth !== 0) throw new SyntaxError('Unclosed RAVs. Need ' + ravDepth + ' more )s:\n' + text);
+       //all other end of input (if inLineComment or not):
+       throw new SyntaxError('Game termination marker missing:\n' + text);
    }
     return moveArray;
 }
@@ -277,6 +300,8 @@ It returns a board so that it can be used for starting positions.*/
 Parse.ShortenedFenRow = function(game, text)
 {
     if(!moveTextRegex[Parse.ShortenedFenRow].test(text)) throw new SyntaxError(text + ' is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]);
+    //this is the only parse method that immediately checks moveTextRegex.
+    //This function needs to do so because the SetUp tag's syntax hasn't been validated yet.
 
     var hasBeforeBoard = (game !== undefined && game !== null);
     var beforeBoard, afterBoard;

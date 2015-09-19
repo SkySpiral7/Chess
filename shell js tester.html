@@ -9,7 +9,12 @@ output.value = eval('(function(){'+document.getElementById("inputCode").value+'}
 //doesn't catch so that the stack trace is unchanged
 };
 </script>
-<script src="all.js"></script>
+<!--Test section-->
+<script src="all.js"></script><!--the code to test-->
+<!--this would only work locally:-->
+<script src="..\Humans & Heroes\2-secret-origins\javascript\simple tester.js"></script><!--this runs the tests-->
+<script src="tests.js"></script><!--these are the tests (must come after simple tester)-->
+<!--/Test section-->
 <a>Code:</a><br />
 <textarea id="inputCode" rows="10" cols="120">var gameText = '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 a7a6 2. b2b3 b7b6 *';
 var game = Parse.VariableGameNotation(gameText);
@@ -22,5 +27,6 @@ return Write.FormatGameSquareArrayAsString(Write.GameSquareArray(game));
 <input type="button" onClick="main();" value="Execute" /><br /><br />
 <a>Return Value:</a><br />
 <textarea id="output" rows="25" cols="50"></textarea><br />
-<br /><br /><br /><br />
+<a href="javascript:Tester.testAll();">Run all tests</a><br />
+<br /><div id="test results"></div><br /><br />
 </html>

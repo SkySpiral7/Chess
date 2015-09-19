@@ -1,7 +1,7 @@
 var validationLevel = {off: {}, basic: {}, full: {}};  //enum
 //off: assumes that moving an empty square is possible and other non-sense
     //note that fairy chess is not supported, this project is coded assuming legal games
-    //eg: only pawns can be promoted
+    //eg: only pawns can be promoted, castling assumes normal start positions (there's really no way around this)
 //basic: only checks for things that are likely input errors.
     //to do this it checks some basic move legality but only the ones that are very unlikely to occur in a game
     //eg white can't move black's piece and Pa3 can't be promoted to a queen

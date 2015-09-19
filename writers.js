@@ -22,14 +22,14 @@ Write.VariableGameNotation = function(game, gameTerminator, allTags)
     if(allTags.GameFormat == null) allTags.GameFormat = 'PGN';
     if(allTags.MoveFormat == null) allTags.MoveFormat = 'SAN';
 
-    var gameFormat = allTags.GameFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
+    var gameFormat = allTags.GameFormat.toString().trim().replace(/:[\s\S]*$/, '').toUpperCase();
     if(gameFormat !== 'VGN') throw new Error('GameFormat ' + allTags.GameFormat +' is not supported.');
 
     if(allTags.SetUp == null && !game.getBoard(0).equals(new Board(true)))
        allTags.SetUp = 'FEN:' + Write.FenRow(game, 0);
 
     var writer;
-    var moveFormat = allTags.MoveFormat.toString().trim().replace(/:.*$/, '').toUpperCase();
+    var moveFormat = allTags.MoveFormat.toString().trim().replace(/:[\s\S]*$/, '').toUpperCase();
     if(moveFormat === 'BCCF') writer = Write.BinaryCompressedCoordinateFormatMove;
     else if(moveFormat === 'BCFEN') writer = Write.BinaryCompressedFenRow;
     else if(moveFormat === 'FCN') writer = Write.FriendlyCoordinateNotationMove;
