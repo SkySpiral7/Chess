@@ -22,6 +22,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new SyntaxError('Block comment never ended:\n{Yo'), Actual: e, Action: actionTaken, Description: 'Block Comment'});
    }
+
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationTagSection('[Date');
@@ -31,6 +32,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new SyntaxError('Tag never ended:\n[Date'), Actual: e, Action: actionTaken, Description: 'Tag'});
    }
+
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationTagSection('[Date "2015-');
@@ -40,6 +42,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new SyntaxError('Tag string never ended:\n[Date "2015-'), Actual: e, Action: actionTaken, Description: 'Tag string'});
    }
+
     try {
     actionTaken = 'Nested';
     Parse.VariableGameNotationTagSection('[Date "2015"\n[EndDate "2016"]]');
@@ -49,6 +52,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new SyntaxError('Illegal character found in tag:\n[Date "2015"\n['), Actual: e, Action: actionTaken, Description: 'Tags'});
    }
+
     try {
     actionTaken = 'Multiple';
     Parse.VariableGameNotationTagSection('[Date "2015" "Sep"]');
@@ -58,6 +62,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new SyntaxError('A tag can\'t contain more than 1 string:\n[Date "2015" "'), Actual: e, Action: actionTaken, Description: 'Tag strings'});
    }
+
     try {
     actionTaken = 'Multiple';
     Parse.VariableGameNotationTagSection('[End Date "2015"]');
@@ -67,6 +72,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new SyntaxError('A tag can\'t contain more than 1 name:\n[End D'), Actual: e, Action: actionTaken, Description: 'Tag names: space'});
    }
+
     try {
     actionTaken = 'Multiple';
     Parse.VariableGameNotationTagSection('[End{}Date "2015"]');
@@ -76,6 +82,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new SyntaxError('A tag name must be followed by white space:\n[End{'), Actual: e, Action: actionTaken, Description: 'Tag names: comment'});
    }
+
     try {
     actionTaken = 'Unsupported';
     Parse.VariableGameNotationTagSection('[GameFormat "PSG:Fake"]');
@@ -85,6 +92,7 @@ Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
    {
        testResults.push({Expected: new Error('GameFormat PSG:Fake is not supported.'), Actual: e, Action: actionTaken, Description: 'GameFormat: Text'});
    }
+
     try {
     actionTaken = 'Unsupported';
     Parse.VariableGameNotationTagSection('[MoveFormat "BCCF"][GameFormat "VGN"]');
@@ -178,6 +186,146 @@ Tester.parsers.VariableGameNotationTagSection.happy=function(isFirst)
 
     TesterUtility.displayResults('Tester.parsers.VariableGameNotationTagSection.happy', testResults, isFirst);
 };
+Tester.parsers.VariableGameNotationMoveTextSection={};
+Tester.parsers.VariableGameNotationMoveTextSection.testAll=function(isFirst){TesterUtility.testAll(this, isFirst);};
+Tester.parsers.VariableGameNotationMoveTextSection.errors=function(isFirst)
+{
+    TesterUtility.clearResults(isFirst);
+
+    var testResults = [];
+    var actionTaken;
+    try {
+    actionTaken = 'Unclosed';
+    Parse.VariableGameNotationMoveTextSection('{Yo', /a+/);
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with Block Comment.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Block comment never ended:\n{Yo'), Actual: e, Action: actionTaken, Description: 'Block Comment'});
+   }
+
+    try {
+    actionTaken = 'Unclosed';
+    Parse.VariableGameNotationMoveTextSection('(Yo', /a+/);
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with RAV.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Unclosed RAVs. Need 1 more )s:\n(Yo'), Actual: e, Action: actionTaken, Description: 'RAV'});
+   }
+
+    try {
+    actionTaken = 'Unclosed';
+    Parse.VariableGameNotationMoveTextSection('(Yo)(()(', /a+/);
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with RAV.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Unclosed RAVs. Need 2 more )s:\n(Yo)(()('), Actual: e, Action: actionTaken, Description: 'RAV'});
+   }
+
+    try {
+    actionTaken = 'Unclosed';
+    Parse.VariableGameNotationMoveTextSection('a', /a+/);
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with Game 1.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Game termination marker missing:\na'), Actual: e, Action: actionTaken, Description: 'Game 1'});
+   }
+
+    try {
+    actionTaken = 'Unclosed';
+    Parse.VariableGameNotationMoveTextSection('a ', /a+/);
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with Game 2.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Game termination marker missing:\na '), Actual: e, Action: actionTaken, Description: 'Game 2'});
+   }
+
+    try {
+    actionTaken = 'Unclosed';
+    Parse.VariableGameNotationMoveTextSection('', /a+/);
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with Empty.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Game termination marker missing:\n'), Actual: e, Action: actionTaken, Description: 'Empty'});
+   }
+
+    try {
+    actionTaken = 'Multiple';
+    Parse.VariableGameNotationMoveTextSection('1. 2.5 a *', /a+/);
+    //testResults.push(catchFailed(actionTaken, 'Failed to throw with Turn numbers.'));
+    //it's fine that the parser is forgiving
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('A move can\'t have more than 1 move number:\n1. 2.5 '), Actual: e, Action: actionTaken, Description: 'Turn numbers'});
+   }
+
+    try {
+    actionTaken = 'Format';
+    Parse.VariableGameNotationMoveTextSection('aaa b *', /a+/);
+    testResults.push(catchFailed(actionTaken, 'Failed to throw with Move Regex.'));
+    }
+   catch(e)
+   {
+       testResults.push({Expected: new SyntaxError('Regex: /a+/ doesn\'t match input starting with:\nb *'), Actual: e, Action: actionTaken, Description: 'Move Regex'});
+   }
+
+    TesterUtility.displayResults('Tester.parsers.VariableGameNotationMoveTextSection.errors', testResults, isFirst);
+};
+Tester.parsers.VariableGameNotationMoveTextSection.happy=function(isFirst)
+{
+    TesterUtility.clearResults(isFirst);
+
+    var testResults=[];
+    var actionTaken, expected;
+
+    try{
+    actionTaken='Simple';
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('aaa a *', /a+/), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Line comment';
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\naaa a 1-0', /a+/), Action: actionTaken, Description: 'Unix End line'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Line comment';
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\raaa a 0-1  ', /a+/), Action: actionTaken, Description: 'Old Mac End line'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Line comment';
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\r\naaa a 1/2-1/2\n', /a+/), Action: actionTaken, Description: 'Windows End line'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Ignore';
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('\t\taaa\na\t *\t', /a+/), Action: actionTaken, Description: 'White space'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Ignore';
+    testResults.push({Expected: [], Actual: Parse.VariableGameNotationMoveTextSection('*', /a+/), Action: actionTaken, Description: 'Empty game'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='Move Numbers';
+    testResults.push({Expected: ['aaa', 'a', 'aa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('1. aaa 1.5 a aa 2.5 a *', /a+/), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    try{
+    actionTaken='NAG';
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('1. aaa $51656 $1613 a $0 *', /a+/), Action: actionTaken, Description: 'Text'});
+    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+
+    TesterUtility.displayResults('Tester.parsers.VariableGameNotationMoveTextSection.happy', testResults, isFirst);
+};
 /*Test these (possibly not a complete list)
 core:
 {
@@ -199,8 +347,7 @@ movement:
 }
 parsers:
 {
-   Parse.VariableGameNotation: split into sub tests. have a test case show that a line comment is allowed to exist between last tag and white's move #
-   Parse.VariableGameNotationMoveTextSection
+   Parse.VariableGameNotation: split into sub tests
    moveTextRegex[Parse.MinimumCoordinateNotationMove]
    Parse.FriendlyCoordinateNotationMove
    moveTextRegex[Parse.FriendlyCoordinateNotationMove]
