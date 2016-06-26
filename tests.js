@@ -1,113 +1,108 @@
 //sigh... I should have done TDD
 
-//should I move this into TesterUtility?
-var catchFailed = function(action, description){return {Expected: 'throw', Actual: 'return', Action: action, Description: description};};
-
-Tester.parsers={};
-Tester.parsers.testAll=function(isFirst){TesterUtility.testAll(this, isFirst);};
-Tester.parsers.VariableGameNotationTagSection={};
-Tester.parsers.VariableGameNotationTagSection.testAll=function(isFirst){TesterUtility.testAll(this, isFirst);};
-Tester.parsers.VariableGameNotationTagSection.errors=function(isFirst)
+TestSuite.parsers={};
+TestSuite.parsers.VariableGameNotationTagSection={};
+TestSuite.parsers.VariableGameNotationTagSection.errors=function(isFirst)
 {
-    TesterUtility.clearResults(isFirst);
+    TestRunner.clearResults(isFirst);
 
     var testResults = [];
     var actionTaken;
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationTagSection('{Yo');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Block Comment.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Block Comment.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Block comment never ended:\n{Yo'), Actual: e, Action: actionTaken, Description: 'Block Comment'});
+       testResults.push({Expected: new SyntaxError('Block comment never ended:\n{Yo'), Actual: e, Description: actionTaken+': Block Comment'});
    }
 
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationTagSection('[Date');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Tag.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Tag.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Tag never ended:\n[Date'), Actual: e, Action: actionTaken, Description: 'Tag'});
+       testResults.push({Expected: new SyntaxError('Tag never ended:\n[Date'), Actual: e, Description: actionTaken+': Tag'});
    }
 
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationTagSection('[Date "2015-');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Tag string.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Tag string.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Tag string never ended:\n[Date "2015-'), Actual: e, Action: actionTaken, Description: 'Tag string'});
+       testResults.push({Expected: new SyntaxError('Tag string never ended:\n[Date "2015-'), Actual: e, Description: actionTaken+': Tag string'});
    }
 
     try {
     actionTaken = 'Nested';
     Parse.VariableGameNotationTagSection('[Date "2015"\n[EndDate "2016"]]');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Tags.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Tags.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Illegal character found in tag:\n[Date "2015"\n['), Actual: e, Action: actionTaken, Description: 'Tags'});
+       testResults.push({Expected: new SyntaxError('Illegal character found in tag:\n[Date "2015"\n['), Actual: e, Description: actionTaken+': Tags'});
    }
 
     try {
     actionTaken = 'Multiple';
     Parse.VariableGameNotationTagSection('[Date "2015" "Sep"]');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Tag strings.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Tag strings.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('A tag can\'t contain more than 1 string:\n[Date "2015" "'), Actual: e, Action: actionTaken, Description: 'Tag strings'});
+       testResults.push({Expected: new SyntaxError('A tag can\'t contain more than 1 string:\n[Date "2015" "'), Actual: e, Description: actionTaken+': Tag strings'});
    }
 
     try {
     actionTaken = 'Multiple';
     Parse.VariableGameNotationTagSection('[End Date "2015"]');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Tag names: space.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Tag names: space.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('A tag can\'t contain more than 1 name:\n[End D'), Actual: e, Action: actionTaken, Description: 'Tag names: space'});
+       testResults.push({Expected: new SyntaxError('A tag can\'t contain more than 1 name:\n[End D'), Actual: e, Description: actionTaken+': Tag names: space'});
    }
 
     try {
     actionTaken = 'Multiple';
     Parse.VariableGameNotationTagSection('[End{}Date "2015"]');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Tag names: comment.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Tag names: comment.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('A tag name must be followed by white space:\n[End{'), Actual: e, Action: actionTaken, Description: 'Tag names: comment'});
+       testResults.push({Expected: new SyntaxError('A tag name must be followed by white space:\n[End{'), Actual: e, Description: actionTaken+': Tag names: comment'});
    }
 
     try {
     actionTaken = 'Unsupported';
     Parse.VariableGameNotationTagSection('[GameFormat "PSG:Fake"]');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with GameFormat: Text.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with GameFormat: Text.');
     }
    catch(e)
    {
-       testResults.push({Expected: new Error('GameFormat PSG:Fake is not supported.'), Actual: e, Action: actionTaken, Description: 'GameFormat: Text'});
+       testResults.push({Expected: new Error('GameFormat PSG:Fake is not supported.'), Actual: e, Description: actionTaken+': GameFormat: Text'});
    }
 
     try {
     actionTaken = 'Unsupported';
     Parse.VariableGameNotationTagSection('[MoveFormat "BCCF"][GameFormat "VGN"]');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with GameFormat: Binary.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with GameFormat: Binary.');
     }
    catch(e)
    {
-       testResults.push({Expected: new Error('GameFormat PGN is not supported.'), Actual: e, Action: actionTaken, Description: 'GameFormat: Binary'});
+       testResults.push({Expected: new Error('GameFormat PGN is not supported.'), Actual: e, Description: actionTaken+': GameFormat: Binary'});
    }
 
-    TesterUtility.displayResults('Tester.parsers.VariableGameNotationTagSection.errors', testResults, isFirst);
+    return TestRunner.displayResults('Parse.VariableGameNotationTagSection errors', testResults, isFirst);
 };
-Tester.parsers.VariableGameNotationTagSection.happy=function(isFirst)
+TestSuite.parsers.VariableGameNotationTagSection.happy=function(isFirst)
 {
-    TesterUtility.clearResults(isFirst);
+    TestRunner.clearResults(isFirst);
 
     var testResults=[];
     var actionTaken, expected;
@@ -115,220 +110,219 @@ Tester.parsers.VariableGameNotationTagSection.happy=function(isFirst)
     try{
     actionTaken='Simple';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'MCN', Date: '2015'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][MoveFormat "MCN"][Date "2015"] Move Text')), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][MoveFormat "MCN"][Date "2015"] Move Text')), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Simple';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'BCCF'}, moveTextSection: '[Date "2015"]{ Move Text', isBinary: true};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][MoveFormat "BCCF"][Date "2015"]{ Move Text')), Action: actionTaken, Description: 'Binary'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][MoveFormat "BCCF"][Date "2015"]{ Move Text')), Description: actionTaken+': Binary'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Escaped';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN', Black: 'Mario "Jumpman" Mario'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][Black "Mario \\"Jumpman\\" Mario"]Move Text')), Action: actionTaken, Description: 'Tag String: quote'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][Black "Mario \\"Jumpman\\" Mario"]Move Text')), Description: actionTaken+': Tag String: quote'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Escaped';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN', OsFolder: 'C:\\Windows'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][OsFolder "C:\\\\Windows"]Move Text')), Action: actionTaken, Description: 'Tag String: backslash'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][OsFolder "C:\\\\Windows"]Move Text')), Description: actionTaken+': Tag String: backslash'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Escaped';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN', SaveToFolder: '\\\\NetworkFolder'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][SaveToFolder "\\\\\\\\NetworkFolder"]Move Text')), Action: actionTaken, Description: 'Tag String: double backslash'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][SaveToFolder "\\\\\\\\NetworkFolder"]Move Text')), Description: actionTaken+': Tag String: double backslash'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Escaped';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN', Black: 'Me'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][Black "\\Me"]Move Text')), Action: actionTaken, Description: 'Tag String: other'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"][Black "\\Me"]Move Text')), Description: actionTaken+': Tag String: other'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Line comment';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('%Yo\n[GameFormat "VGN"]Move Text')), Action: actionTaken, Description: 'Useless Token %'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('%Yo\n[GameFormat "VGN"]Move Text')), Description: actionTaken+': Useless Token %'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Line comment';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection(';Yo\r[GameFormat "VGN"]Move Text')), Action: actionTaken, Description: 'Old Mac End line'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection(';Yo\r[GameFormat "VGN"]Move Text')), Description: actionTaken+': Old Mac End line'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Line comment';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection(';Yo\r\n[GameFormat "VGN"]Move Text')), Action: actionTaken, Description: 'Windows End line'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection(';Yo\r\n[GameFormat "VGN"]Move Text')), Description: actionTaken+': Windows End line'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Line comment';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN'}, moveTextSection: '', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"];Yo')), Action: actionTaken, Description: 'Unended'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"];Yo')), Description: actionTaken+': Unended'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Ignore';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN'}, moveTextSection: 'Move Text', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('\n[\t  GameFormat\n"VGN"\t]\tMove Text')), Action: actionTaken, Description: 'White space'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('\n[\t  GameFormat\n"VGN"\t]\tMove Text')), Description: actionTaken+': White space'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Ignore';
     expected = {allTags: {GameFormat: 'VGN', MoveFormat: 'SAN'}, moveTextSection: '', isBinary: false};
-    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"]')), Action: actionTaken, Description: 'Empty game'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: JSON.stringify(expected), Actual: JSON.stringify(Parse.VariableGameNotationTagSection('[GameFormat "VGN"]')), Description: actionTaken+': Empty game'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
-    TesterUtility.displayResults('Tester.parsers.VariableGameNotationTagSection.happy', testResults, isFirst);
+    return TestRunner.displayResults('Parse.VariableGameNotationTagSection happy', testResults, isFirst);
 };
-Tester.parsers.VariableGameNotationMoveTextSection={};
-Tester.parsers.VariableGameNotationMoveTextSection.testAll=function(isFirst){TesterUtility.testAll(this, isFirst);};
-Tester.parsers.VariableGameNotationMoveTextSection.errors=function(isFirst)
+TestSuite.parsers.VariableGameNotationMoveTextSection={};
+TestSuite.parsers.VariableGameNotationMoveTextSection.errors=function(isFirst)
 {
-    TesterUtility.clearResults(isFirst);
+    TestRunner.clearResults(isFirst);
 
     var testResults = [];
     var actionTaken;
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationMoveTextSection('{Yo', /a+/);
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Block Comment.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Block Comment.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Block comment never ended:\n{Yo'), Actual: e, Action: actionTaken, Description: 'Block Comment'});
+       testResults.push({Expected: new SyntaxError('Block comment never ended:\n{Yo'), Actual: e, Description: actionTaken+': Block Comment'});
    }
 
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationMoveTextSection('(Yo', /a+/);
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with RAV.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with RAV.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Unclosed RAVs. Need 1 more )s:\n(Yo'), Actual: e, Action: actionTaken, Description: 'RAV'});
+       testResults.push({Expected: new SyntaxError('Unclosed RAVs. Need 1 more )s:\n(Yo'), Actual: e, Description: actionTaken+': RAV'});
    }
 
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationMoveTextSection('(Yo)(()(', /a+/);
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with RAV.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with RAV.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Unclosed RAVs. Need 2 more )s:\n(Yo)(()('), Actual: e, Action: actionTaken, Description: 'RAV'});
+       testResults.push({Expected: new SyntaxError('Unclosed RAVs. Need 2 more )s:\n(Yo)(()('), Actual: e, Description: actionTaken+': RAV'});
    }
 
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationMoveTextSection('a', /a+/);
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Game 1.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Game 1.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Game termination marker missing:\na'), Actual: e, Action: actionTaken, Description: 'Game 1'});
+       testResults.push({Expected: new SyntaxError('Game termination marker missing:\na'), Actual: e, Description: actionTaken+': Game 1'});
    }
 
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationMoveTextSection('a ', /a+/);
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Game 2.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Game 2.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Game termination marker missing:\na '), Actual: e, Action: actionTaken, Description: 'Game 2'});
+       testResults.push({Expected: new SyntaxError('Game termination marker missing:\na '), Actual: e, Description: actionTaken+': Game 2'});
    }
 
     try {
     actionTaken = 'Unclosed';
     Parse.VariableGameNotationMoveTextSection('', /a+/);
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Empty.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Empty.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Game termination marker missing:\n'), Actual: e, Action: actionTaken, Description: 'Empty'});
+       testResults.push({Expected: new SyntaxError('Game termination marker missing:\n'), Actual: e, Description: actionTaken+': Empty'});
    }
 
     try {
     actionTaken = 'Multiple';
     Parse.VariableGameNotationMoveTextSection('1. 2.5 a *', /a+/);
-    //testResults.push(catchFailed(actionTaken, 'Failed to throw with Turn numbers.'));
+    //TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Turn numbers.');
     //it's fine that the parser is forgiving
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('A move can\'t have more than 1 move number:\n1. 2.5 '), Actual: e, Action: actionTaken, Description: 'Turn numbers'});
+       testResults.push({Expected: new SyntaxError('A move can\'t have more than 1 move number:\n1. 2.5 '), Actual: e, Description: actionTaken+': Turn numbers'});
    }
 
     try {
     actionTaken = 'Format';
     Parse.VariableGameNotationMoveTextSection('aaa b *', /a+/);
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Move Regex.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Move Regex.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Regex: /a+/ doesn\'t match input starting with:\nb *'), Actual: e, Action: actionTaken, Description: 'Move Regex'});
+       testResults.push({Expected: new SyntaxError('Regex: /a+/ doesn\'t match input starting with:\nb *'), Actual: e, Description: actionTaken+': Move Regex'});
    }
 
-    TesterUtility.displayResults('Tester.parsers.VariableGameNotationMoveTextSection.errors', testResults, isFirst);
+    return TestRunner.displayResults('Parse.VariableGameNotationMoveTextSection errors', testResults, isFirst);
 };
-Tester.parsers.VariableGameNotationMoveTextSection.happy=function(isFirst)
+TestSuite.parsers.VariableGameNotationMoveTextSection.happy=function(isFirst)
 {
-    TesterUtility.clearResults(isFirst);
+    TestRunner.clearResults(isFirst);
 
     var testResults=[];
     var actionTaken, expected;
 
     try{
     actionTaken='Simple';
-    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('aaa a *', /a+/), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('aaa a *', /a+/), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Line comment';
-    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\naaa a 1-0', /a+/), Action: actionTaken, Description: 'Unix End line'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\naaa a 1-0', /a+/), Description: actionTaken+': Unix End line'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Line comment';
-    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\raaa a 0-1  ', /a+/), Action: actionTaken, Description: 'Old Mac End line'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\raaa a 0-1  ', /a+/), Description: actionTaken+': Old Mac End line'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Line comment';
-    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\r\naaa a 1/2-1/2\n', /a+/), Action: actionTaken, Description: 'Windows End line'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection(';Yo\r\naaa a 1/2-1/2\n', /a+/), Description: actionTaken+': Windows End line'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Ignore';
-    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('\t\taaa\na\t *\t', /a+/), Action: actionTaken, Description: 'White space'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('\t\taaa\na\t *\t', /a+/), Description: actionTaken+': White space'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Ignore';
-    testResults.push({Expected: [], Actual: Parse.VariableGameNotationMoveTextSection('*', /a+/), Action: actionTaken, Description: 'Empty game'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: [], Actual: Parse.VariableGameNotationMoveTextSection('*', /a+/), Description: actionTaken+': Empty game'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Move Numbers';
-    testResults.push({Expected: ['aaa', 'a', 'aa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('1. aaa 1.5 a aa 2.5 a *', /a+/), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: ['aaa', 'a', 'aa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('1. aaa 1.5 a aa 2.5 a *', /a+/), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='NAG';
-    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('1. aaa $51656 $1613 a $0 *', /a+/), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: ['aaa', 'a'], Actual: Parse.VariableGameNotationMoveTextSection('1. aaa $51656 $1613 a $0 *', /a+/), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
-    TesterUtility.displayResults('Tester.parsers.VariableGameNotationMoveTextSection.happy', testResults, isFirst);
+    return TestRunner.displayResults('Parse.VariableGameNotationMoveTextSection happy', testResults, isFirst);
 };
-Tester.parsers.ShortenedFenRow=function(isFirst)
+TestSuite.parsers.ShortenedFenRow=function(isFirst)
 {
-    TesterUtility.clearResults(isFirst);
+    TestRunner.clearResults(isFirst);
 
     var testResults=[];
     var actionTaken, expected;
@@ -336,13 +330,13 @@ Tester.parsers.ShortenedFenRow=function(isFirst)
 
     try{
     actionTaken='Simple';
-    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString+'w KQkq -'), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString+'w KQkq -'), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Black\'s Turn';
-    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b KQkq -'), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b KQkq -'), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Can\'t castle';
@@ -350,26 +344,26 @@ Tester.parsers.ShortenedFenRow=function(isFirst)
        black: {canKingsCastle: false, canQueensCastle: false}};
     var expected = new Board(true);
     expected.changeState(state);
-    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w - -'), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w - -'), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='En Passant';
     var state = {enPassantSquare: 'A3'};
     var expected = new Board(true);
     expected.changeState(state);
-    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w - a3'), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w - a3'), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='No info';
-    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString), Action: actionTaken, Description: 'Trailing Space'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString), Description: actionTaken+': Trailing Space'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='No info';
-    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString.substring(0, boardString.length-1)), Action: actionTaken, Description: 'No Trailing Space'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString.substring(0, boardString.length-1)), Description: actionTaken+': No Trailing Space'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='No En Passant';
@@ -377,23 +371,23 @@ Tester.parsers.ShortenedFenRow=function(isFirst)
        black: {canKingsCastle: false, canQueensCastle: false}};
     var expected = new Board(true);
     expected.changeState(state);
-    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w -'), Action: actionTaken, Description: 'Can\'t Castle'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'w -'), Description: actionTaken+': Can\'t Castle'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='No En Passant';
-    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString+'w KQkq'), Action: actionTaken, Description: 'Can Castle'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: new Board(true), Actual: Parse.ShortenedFenRow(null, boardString+'w KQkq'), Description: actionTaken+': Can Castle'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='No castle';
-    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b'), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b'), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Ignore';
-    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b +#+'), Action: actionTaken, Description: 'End markers'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: new Board(false), Actual: Parse.ShortenedFenRow(null, boardString+'b +#+'), Description: actionTaken+': End markers'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try{
     actionTaken='Some castling';
@@ -401,30 +395,30 @@ Tester.parsers.ShortenedFenRow=function(isFirst)
        black: {canKingsCastle: true, canQueensCastle: false}};
     var expected = new Board(true);
     expected.changeState(state);
-    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'b Qk'), Action: actionTaken, Description: 'Text'});
-    } catch(e){testResults.push({Error: e, Action: actionTaken});}
+    testResults.push({Expected: expected, Actual: Parse.ShortenedFenRow(null, boardString+'b Qk'), Description: actionTaken+': Text'});
+    } catch(e){testResults.push({Error: e, Description: actionTaken});}
 
     try {
     actionTaken = 'Format';
     Parse.ShortenedFenRow(null, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b a3');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Move Regex.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Move Regex.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b a3 is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]), Actual: e, Action: actionTaken, Description: 'Move Regex'});
+       testResults.push({Expected: new SyntaxError('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b a3 is not valid SFEN. Regex: ' + moveTextRegex[Parse.ShortenedFenRow]), Actual: e, Description: actionTaken+': Move Regex'});
    }
 
     try {
     actionTaken = 'Format';
     Parse.ShortenedFenRow(null, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b QQ a3');
-    testResults.push(catchFailed(actionTaken, 'Failed to throw with Move Regex.'));
+    TestRunner.failedToThrow(testResults, actionTaken+': Failed to throw with Move Regex.');
     }
    catch(e)
    {
-       testResults.push({Expected: new SyntaxError('Illegal Castling info: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b QQ a3'), Actual: e, Action: actionTaken, Description: 'Move Regex'});
+       testResults.push({Expected: new SyntaxError('Illegal Castling info: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b QQ a3'), Actual: e, Description: actionTaken+': Move Regex'});
    }
 
-    TesterUtility.displayResults('Tester.parsers.ShortenedFenRow', testResults, isFirst);
+    return TestRunner.displayResults('Parse.ShortenedFenRow', testResults, isFirst);
 };
 /*Test these (possibly not a complete list)
 core:

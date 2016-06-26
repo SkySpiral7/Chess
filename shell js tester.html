@@ -3,20 +3,21 @@
 <script>
 function main()
 {
-var output = document.getElementById("output");
+var output = document.getElementById('output');
 output.value = 'An error occurred.';  //will be overwritten if doesn't throw
-output.value = eval('(function(){'+document.getElementById("inputCode").value+'})();');
-//doesn't catch so that the stack trace is unchanged
+output.value = eval('(function(){' + document.getElementById('inputCode').value + '})();');
+//do not catch
 };
 </script>
 <!--Test section-->
+<!--these would only work locally-->
 <script src="all.js"></script><!--the code to test-->
-<!--this would only work locally:-->
-<script src="..\Humans & Heroes\2-secret-origins\javascript\simple tester.js"></script><!--this runs the tests-->
+<script src="../Miscellaneous/src/javascript/test runner.js"></script><!--this runs the tests-->
 <script src="tests.js"></script><!--these are the tests (must come after simple tester)-->
 <!--/Test section-->
 <a>Code:</a><br />
-<textarea id="inputCode" rows="10" cols="120">var gameText = '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 a7a6 2. b2b3 b7b6 *';
+<textarea id="inputCode" rows="10" cols="120">
+var gameText = '[GameFormat "VGN"][MoveFormat "MCN"] 1. a2a3 a7a6 2. b2b3 b7b6 *';
 var game = Parse.VariableGameNotation(gameText);
 
 gameText = Write.VariableGameNotation(game, '*', {GameFormat: 'VGN', MoveFormat: 'BCFEN'});
@@ -24,9 +25,14 @@ game = Parse.VariableGameNotation(gameText);
 
 return Write.FormatGameSquareArrayAsString(Write.GameSquareArray(game));
 </textarea><br />
-<input type="button" onClick="main();" value="Execute" /><br /><br />
+<input type="button" onClick="main();" value="Execute" /><br />
+<a href="javascript:TestRunner.testAll();">Run all tests</a><br />
+<br />
 <a>Return Value:</a><br />
 <textarea id="output" rows="25" cols="50"></textarea><br />
-<a href="javascript:Tester.testAll();">Run all tests</a><br />
-<br /><div id="test results"></div><br /><br />
+<br />
+<a>Test Results:</a><br />
+<textarea id="testResults" rows="20" cols="100"></textarea>
+<br /><br />
+<script>document.getElementById('inputCode').focus();</script>
 </html>

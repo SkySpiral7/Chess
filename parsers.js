@@ -351,10 +351,10 @@ moveTextRegex[Parse.ShortenedFenRow] = /^(?:[KQBNRPkqbnrp1-8]{1,8}\/){7}[KQBNRPk
 Parse.FenBoard = function(game, board, text)
 {
     //eg: rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR
-    var originalText = text;
+    if((/\d\d+/).test(text)) throw new SyntaxError('Invalid board: ' + text);  //can't have adjacent numbers
     //doesn't copy the board because a new one was passed in
-    if((/\d\d+/).test(text)) throw new SyntaxError('Invalid board: ' + originalText);  //can't have adjacent numbers
 
+    var originalText = text;
     //this order is logical and most efficient due to slowest string growth rate
     text = text.replace(/2/g, '11');
     text = text.replace(/3/g, '111');
